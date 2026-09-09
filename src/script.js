@@ -1,33 +1,80 @@
 const RU_DAYS = ["Воскресенье","Понедельник","Вторник","Среда","Четверг","Пятница","Суббота"];
-const EN_TO_IDX = {Sun:0,Mon:1,Tue:2,Wed:3,Thu:4,Fri:5,Sat:6};
+const MONTHS_RU = ["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"];
 const REFRESH_MS = 15000;
+const STORAGE_KEY = "kisBoardPrefs";
+
+// Fixed UTC offsets in hours. Deliberately NOT using Intl.DateTimeFormat({timeZone})
+// here: some JS engines ship stale tzdata for Asia/Almaty (it switched from UTC+6 to
+// UTC+5 in March 2024) which silently shows the wrong time. None of these regions
+// observe DST, so a plain numeric offset is both simpler and more reliable.
+const TZ_OFFSETS = {
+  "Asia/Almaty": 5,
+  "Asia/Tashkent": 5,
+  "Asia/Bishkek": 6,
+  "Europe/Moscow": 3,
+  "Asia/Yekaterinburg": 5,
+  "UTC": 0,
+};
 
 let windowMode = "4";
 let selectedKey = null;
-const TZ = "Asia/Almaty"; // UTC+5, фиксировано
+let selectedTz = "Asia/Almaty";
 let teacherFilter = "";
 let groupFilter = "";
 let roomFilter = "";
 let swapOrder = false;
 
-function getZoned(tz){
+function loadPrefs(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return;
+    const p = JSON.parse(raw);
+    if(p.tz && (TZ_OFFSETS[p.tz] !== undefined || p.tz === "local")) selectedTz = p.tz;
+    if(p.windowMode) windowMode = p.windowMode;
+    if(typeof p.teacherFilter === "string") teacherFilter = p.teacherFilter;
+    if(typeof p.roomFilter === "string") roomFilter = p.roomFilter;
+    if(typeof p.groupFilter === "string") groupFilter = p.groupFilter;
+    if(typeof p.swapOrder === "boolean") swapOrder = p.swapOrder;
+  } catch(e){ /* localStorage unavailable (e.g. sandboxed preview) — fall back to defaults */ }
+}
+
+function savePrefs(){
+  try{
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      tz: selectedTz, windowMode, teacherFilter, roomFilter, groupFilter, swapOrder
+    }));
+  } catch(e){ /* ignore — persistence is a nice-to-have, not required */ }
+}
+
+function partsFromDate(d, useUTC){
+  return {
+    hour: useUTC ? d.getUTCHours() : d.getHours(),
+    minute: useUTC ? d.getUTCMinutes() : d.getMinutes(),
+    second: useUTC ? d.getUTCSeconds() : d.getSeconds(),
+    day: useUTC ? d.getUTCDate() : d.getDate(),
+    month: useUTC ? d.getUTCMonth() : d.getMonth(),
+    year: useUTC ? d.getUTCFullYear() : d.getFullYear(),
+    weekday: useUTC ? d.getUTCDay() : d.getDay(),
+  };
+}
+
+function getZoned(tzKey){
   const now = new Date();
-  if(tz === "local"){
-    return {
-      hour: now.getHours(), minute: now.getMinutes(), second: now.getSeconds(),
-      dayName: RU_DAYS[now.getDay()],
-      dateStr: now.toLocaleDateString("ru-RU", {day:"numeric", month:"long", year:"numeric"})
-    };
+  let d, useUTC;
+  if(tzKey === "local"){
+    d = now; useUTC = false;
+  } else {
+    const offsetHours = TZ_OFFSETS[tzKey] !== undefined ? TZ_OFFSETS[tzKey] : 5;
+    const utcMs = now.getTime() + now.getTimezoneOffset()*60000;
+    d = new Date(utcMs + offsetHours*3600000);
+    useUTC = true;
   }
-  const dtf = new Intl.DateTimeFormat("en-US", {timeZone:tz, hour12:false, hour:"2-digit", minute:"2-digit", second:"2-digit", weekday:"short"});
-  const parts = dtf.formatToParts(now);
-  const get = t => parts.find(p=>p.type===t).value;
-  const hour = parseInt(get("hour"),10) % 24;
-  const minute = parseInt(get("minute"),10);
-  const second = parseInt(get("second"),10);
-  const idx = EN_TO_IDX[get("weekday")];
-  const dateStr = now.toLocaleDateString("ru-RU", {timeZone:tz, day:"numeric", month:"long", year:"numeric"});
-  return {hour, minute, second, dayName: RU_DAYS[idx], dateStr};
+  const p = partsFromDate(d, useUTC);
+  return {
+    hour: p.hour, minute: p.minute, second: p.second,
+    dayName: RU_DAYS[p.weekday],
+    dateStr: p.day + " " + MONTHS_RU[p.month] + " " + p.year + " г."
+  };
 }
 
 function pad(n){ return String(n).padStart(2,"0"); }
@@ -62,7 +109,7 @@ function lessonKey(l){
 }
 
 function render(){
-  const z = getZoned(TZ);
+  const z = getZoned(selectedTz);
   document.getElementById("clock").textContent =
     pad(z.hour)+":"+pad(z.minute)+":"+pad(z.second);
   const todayName = z.dayName;
@@ -304,6 +351,10 @@ function hideDetailPopup(){
   document.getElementById("detailPopup").classList.remove("show");
 }
 
+function hideSettingsPopover(){
+  document.getElementById("settingsPopover").classList.remove("show");
+}
+
 function emptyState(big, small){
   hideDetailPopup();
   selectedKey = null;
@@ -329,6 +380,8 @@ function escapeHtml(s){
   return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 }
 
+loadPrefs();
+
 document.getElementById("winbtns").addEventListener("click", (e)=>{
   const btn = e.target.closest(".winbtn");
   if(!btn) return;
@@ -336,14 +389,32 @@ document.getElementById("winbtns").addEventListener("click", (e)=>{
   document.querySelectorAll(".winbtn").forEach(b=>b.classList.toggle("active", b===btn));
   selectedKey = null;
   hideDetailPopup();
+  savePrefs();
   render();
 });
-document.querySelector('.winbtn[data-h="4"]').classList.add("active");
+document.querySelector('.winbtn[data-h="'+windowMode+'"]').classList.add("active");
 
 document.getElementById("swapBtn").addEventListener("click", ()=>{
   swapOrder = !swapOrder;
   selectedKey = null;
   hideDetailPopup();
+  savePrefs();
+  render();
+});
+
+const settingsBtn = document.getElementById("settingsBtn");
+const settingsPopover = document.getElementById("settingsPopover");
+settingsBtn.addEventListener("click", (ev)=>{
+  ev.stopPropagation();
+  settingsPopover.classList.toggle("show");
+});
+settingsPopover.addEventListener("click", (ev)=>{ ev.stopPropagation(); });
+
+const tzSelectEl = document.getElementById("tzSelect");
+tzSelectEl.value = selectedTz;
+tzSelectEl.addEventListener("change", (e)=>{
+  selectedTz = e.target.value;
+  savePrefs();
   render();
 });
 
@@ -353,8 +424,10 @@ Array.from(new Set(LESSONS.map(l=>l.teacher))).sort((a,b)=>a.localeCompare(b,"ru
   opt.value = name; opt.textContent = name;
   teacherSelectEl.appendChild(opt);
 });
+teacherSelectEl.value = teacherFilter;
 teacherSelectEl.addEventListener("change", (e)=>{
   teacherFilter = e.target.value;
+  savePrefs();
   render();
 });
 
@@ -364,35 +437,44 @@ Array.from(new Set(LESSONS.map(l=>l.room))).sort(roomSortKeyCmp).forEach(room=>{
   opt.value = room; opt.textContent = room;
   roomSelectEl.appendChild(opt);
 });
+roomSelectEl.value = roomFilter;
 roomSelectEl.addEventListener("change", (e)=>{
   roomFilter = e.target.value;
+  savePrefs();
   render();
 });
 
 const groupInputEl = document.getElementById("groupInput");
+groupInputEl.value = groupFilter;
 groupInputEl.addEventListener("input", (e)=>{
   groupFilter = e.target.value;
+  savePrefs();
   render();
 });
 
 document.getElementById("clearFilters").addEventListener("click", ()=>{
   teacherFilter = ""; groupFilter = ""; roomFilter = "";
   teacherSelectEl.value = ""; groupInputEl.value = ""; roomSelectEl.value = "";
+  savePrefs();
   render();
 });
 
 document.addEventListener("click", (e)=>{
   const pop = document.getElementById("detailPopup");
-  if(!pop.classList.contains("show")) return;
-  if(pop.contains(e.target)) return;
-  selectedKey = null;
-  hideDetailPopup();
-  render();
+  if(pop.classList.contains("show") && !pop.contains(e.target)){
+    selectedKey = null;
+    hideDetailPopup();
+    render();
+  }
+  if(settingsPopover.classList.contains("show") && !settingsPopover.contains(e.target) && e.target !== settingsBtn){
+    hideSettingsPopover();
+  }
 });
 document.addEventListener("keydown", (e)=>{
   if(e.key === "Escape"){
     selectedKey = null;
     hideDetailPopup();
+    hideSettingsPopover();
     render();
   }
 });
@@ -400,7 +482,7 @@ document.addEventListener("keydown", (e)=>{
 render();
 setInterval(render, REFRESH_MS);
 setInterval(()=>{
-  const z = getZoned(TZ);
+  const z = getZoned(selectedTz);
   const c = document.getElementById("clock");
   if(c) c.textContent = pad(z.hour)+":"+pad(z.minute)+":"+pad(z.second);
 }, 1000);

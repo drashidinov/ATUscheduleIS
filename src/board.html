@@ -41,7 +41,7 @@
   }
   .brand .eyebrow{font-size:13px; color:var(--text-dim); letter-spacing:.02em; margin:0 0 2px;}
   .brand h1{font-size:26px; font-weight:600; margin:0; letter-spacing:-.01em;}
-  .clockwrap{text-align:right;}
+  .clockwrap{text-align:right; position:relative;}
   .clock{font-size:38px; font-weight:700; line-height:1; letter-spacing:.02em;}
   .dateline{font-size:14px; color:var(--text-dim); margin-top:4px; display:flex; gap:8px; justify-content:flex-end; align-items:center;}
   .live-dot{width:8px; height:8px; border-radius:50%; background:var(--now); display:inline-block; animation:pulse 2s infinite;}
@@ -199,6 +199,24 @@
   }
   .pagefooter a{color:var(--text-dim); text-decoration:none; border-bottom:1px dotted var(--text-faint);}
   .pagefooter a:hover{color:var(--text);}
+
+  .settingsbtn{
+    position:absolute; top:-2px; right:-34px; width:26px; height:26px; border-radius:6px;
+    background:transparent; border:1px solid var(--grid-line); color:var(--text-faint);
+    cursor:pointer; font-size:14px; display:flex; align-items:center; justify-content:center;
+  }
+  .settingsbtn:hover{color:var(--text); border-color:var(--text-dim);}
+  .settingspopover{
+    display:none; position:absolute; top:32px; right:-34px; z-index:60; min-width:230px;
+    background:var(--panel); border:1px solid var(--grid-line); border-radius:10px;
+    padding:12px 14px; box-shadow:0 10px 30px rgba(0,0,0,.5); text-align:left;
+  }
+  .settingspopover.show{display:block;}
+  .settingspopover label{font-size:12px; color:var(--text-dim); display:block; margin-bottom:6px;}
+  .settingspopover select{
+    width:100%; background:var(--row); border:1px solid var(--grid-line); color:var(--text);
+    font-family:'JetBrains Mono',monospace; font-size:13px; padding:6px 8px; border-radius:6px; cursor:pointer;
+  }
 </style>
 </head>
 <body>
@@ -210,8 +228,21 @@
     <h1>Расписание сейчас</h1>
   </div>
   <div class="clockwrap">
+    <button class="settingsbtn" id="settingsBtn" aria-label="Настройки" title="Настройки">⚙</button>
     <div class="clock mono" id="clock">--:--:--</div>
     <div class="dateline"><span class="live-dot"></span><span id="dateline">—</span></div>
+    <div class="settingspopover" id="settingsPopover">
+      <label for="tzSelect">Часовой пояс</label>
+      <select id="tzSelect">
+        <option value="Asia/Almaty" selected>Алматы / Астана (UTC+5)</option>
+        <option value="local">Устройство (авто)</option>
+        <option value="Asia/Bishkek">Бишкек (UTC+6)</option>
+        <option value="Asia/Tashkent">Ташкент (UTC+5)</option>
+        <option value="Europe/Moscow">Москва (UTC+3)</option>
+        <option value="Asia/Yekaterinburg">Екатеринбург (UTC+5)</option>
+        <option value="UTC">UTC</option>
+      </select>
+    </div>
   </div>
 </div>
 
@@ -254,7 +285,7 @@
 <div class="detailpopup" id="detailPopup"></div>
 
 <div class="pagefooter">
-  <span>Табло расписания · Кафедра ИС · v1.4.0</span>
+  <span>Табло расписания · Кафедра ИС · v1.5.0</span>
   <span>По всем вопросам и улучшениям — <a href="mailto:d.rashidinov@atu.edu.kz">d.rashidinov@atu.edu.kz</a></span>
 </div>
 
