@@ -123,11 +123,18 @@
     padding:2px 6px; border-radius:4px; white-space:nowrap;
   }
 
-  .detail{
-    margin-top:16px; background:var(--panel); border:1px solid var(--grid-line); border-radius:10px;
-    padding:16px 18px; display:none;
+  .detailpopup{
+    position:fixed; z-index:50; max-width:320px; min-width:240px;
+    background:var(--panel); border:1px solid var(--grid-line); border-radius:10px;
+    padding:16px 18px; box-shadow:0 10px 30px rgba(0,0,0,.5);
+    display:none;
   }
-  .detail.show{display:block;}
+  .detailpopup.show{display:block;}
+  .closepop{
+    position:absolute; top:8px; right:8px; background:transparent; border:none;
+    color:var(--text-dim); cursor:pointer; font-size:18px; line-height:1; padding:4px 7px; border-radius:5px;
+  }
+  .closepop:hover{color:var(--text); background:var(--row-alt);}
   .detail-top{display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap;}
   .detail-room{font-family:'JetBrains Mono',monospace; font-size:22px; font-weight:700;}
   .detail-time{font-family:'JetBrains Mono',monospace; font-size:15px; color:var(--text-dim);}
@@ -141,6 +148,26 @@
 
   .empty-state{padding:60px 20px; text-align:center; color:var(--text-dim);}
   .empty-state .big{font-size:20px; color:var(--text); font-weight:600; margin-bottom:6px;}
+
+  .listhead{display:flex; padding:8px 14px; border-bottom:1px solid var(--grid-line); font-size:11.5px; color:var(--text-faint); text-transform:none;}
+  .listhead span{padding-left:4px;}
+  .list-item{
+    display:flex; align-items:center; gap:14px; padding:11px 14px; border-bottom:1px solid var(--grid-line);
+    border-left:4px solid; cursor:pointer; transition:background .15s;
+  }
+  .list-item:last-child{border-bottom:none;}
+  .list-item:hover{filter:brightness(1.1);}
+  .list-item.type-lecture{background:var(--lecture-dim); border-color:var(--lecture);}
+  .list-item.type-practice{background:var(--practice-dim); border-color:var(--practice);}
+  .list-item.type-lab{background:var(--lab-dim); border-color:var(--lab);}
+  .list-item.type-other{background:var(--other-dim); border-color:var(--other);}
+  .list-item.online{border-style:dashed;}
+  .list-item.selected{outline:2px solid var(--text);}
+  .list-time{font-family:'JetBrains Mono',monospace; font-weight:700; width:100px; flex-shrink:0; font-size:14px;}
+  .list-room{font-family:'JetBrains Mono',monospace; font-weight:700; width:84px; flex-shrink:0; font-size:14px;}
+  .list-teacher{flex:1.2; min-width:130px; font-weight:600; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .list-subject{flex:2; min-width:160px; font-size:13px; color:var(--text-dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .list-group{flex:1; min-width:100px; font-size:12px; color:var(--text-faint); font-family:'JetBrains Mono',monospace; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
 
   .pagefooter{
     margin-top:28px; padding-top:14px; border-top:1px solid var(--grid-line);
@@ -183,6 +210,7 @@
       <option value="Asia/Yekaterinburg">Екатеринбург (UTC+5)</option>
       <option value="UTC">UTC</option>
     </select>
+    <button class="winbtn" data-h="1">1ч (список)</button>
     <button class="winbtn" data-h="3">Окно 3ч</button>
     <button class="winbtn" data-h="4">Окно 4ч</button>
     <button class="winbtn" data-h="day">Весь день</button>
@@ -195,6 +223,10 @@
     <select class="teacherselect" id="teacherSelect"><option value="">Все преподаватели</option></select>
   </div>
   <div class="fwrap">
+    <label for="roomSelect">Аудитория</label>
+    <select class="teacherselect" id="roomSelect"><option value="">Все аудитории</option></select>
+  </div>
+  <div class="fwrap">
     <label for="groupInput">Группа</label>
     <input class="groupinput" id="groupInput" type="text" placeholder="например, ИС-25">
   </div>
@@ -205,7 +237,7 @@
 
 <div id="boardwrap"></div>
 
-<div class="detail" id="detail"></div>
+<div class="detailpopup" id="detailPopup"></div>
 
 <div class="pagefooter">
   <span>Табло расписания · Кафедра ИС · v1.2.0</span>
@@ -224,6 +256,7 @@ let selectedKey = null;
 let selectedTz = "Asia/Almaty";
 let teacherFilter = "";
 let groupFilter = "";
+let roomFilter = "";
 
 function getZoned(tz){
   const now = new Date();
@@ -288,22 +321,21 @@ function render(){
       "Расписание рабочее с понедельника по пятницу."
     );
     summary.textContent = "";
-    document.getElementById("detail").classList.remove("show");
     return;
   }
 
   const todaysFiltered = todaysAll.filter(l =>
     (!teacherFilter || l.teacher === teacherFilter) &&
+    (!roomFilter || l.room === roomFilter) &&
     (!groupFilter || l.group.toLowerCase().includes(groupFilter.toLowerCase()))
   );
 
   if(todaysFiltered.length === 0){
     boardwrap.innerHTML = emptyState(
       "По выбранным фильтрам сегодня занятий нет",
-      "Попробуйте изменить преподавателя, группу или нажмите «Сбросить фильтры»."
+      "Попробуйте изменить преподавателя, аудиторию, группу или нажмите «Сбросить фильтры»."
     );
     summary.textContent = "";
-    document.getElementById("detail").classList.remove("show");
     return;
   }
 
@@ -331,7 +363,6 @@ function render(){
       boardwrap.innerHTML = emptyState("На сегодня занятия закончились", "Следующие занятия — по расписанию другого дня.");
     }
     summary.textContent = "";
-    document.getElementById("detail").classList.remove("show");
     return;
   }
 
@@ -343,8 +374,14 @@ function render(){
   });
 
   const liveCount = visible.filter(l => l.startMin <= nowMin && l.endMin > nowMin).length;
-  const filterNote = (teacherFilter || groupFilter) ? " · фильтр активен" : "";
-  summary.innerHTML = "Сейчас идёт <b>"+liveCount+"</b> занят"+plural(liveCount)+" · показано "+(windowMode==="day" ? "за весь день" : ("окно <b>"+minutesToLabel(Math.max(winStart,0))+"–"+minutesToLabel(winEnd)+"</b>"))+" · "+rooms.length+" аудитори"+plural2(rooms.length)+filterNote;
+  const filterNote = (teacherFilter || groupFilter || roomFilter) ? " · фильтр активен" : "";
+  const windowLabel = windowMode==="day" ? "за весь день" : ("окно <b>"+minutesToLabel(Math.max(winStart,0))+"–"+minutesToLabel(winEnd)+"</b>");
+  summary.innerHTML = "Сейчас идёт <b>"+liveCount+"</b> занят"+plural(liveCount)+" · показано "+windowLabel+" · "+rooms.length+" аудитори"+plural2(rooms.length)+filterNote;
+
+  if(windowMode === "1"){
+    renderListView(visible, nowMin);
+    return;
+  }
 
   const span = winEnd - winStart;
   const ticks = [];
@@ -391,14 +428,54 @@ function render(){
     +'</div>';
 
   document.querySelectorAll(".block").forEach(el=>{
-    el.addEventListener("click", ()=>{
-      const key = decodeURIComponent(el.getAttribute("data-key"));
-      selectedKey = (selectedKey===key) ? null : key;
-      const lesson = visible.find(l=>lessonKey(l)===key);
-      if(selectedKey && lesson){ showDetail(lesson); } else { document.getElementById("detail").classList.remove("show"); }
-      render();
+    el.addEventListener("click", (ev)=>{
+      ev.stopPropagation();
+      handleItemClick(el, visible);
     });
   });
+}
+
+function renderListView(visible, nowMin){
+  const boardwrap = document.getElementById("boardwrap");
+  const items = visible.slice().sort((a,b)=> a.startMin-b.startMin || a.room.localeCompare(b.room));
+  const rows = items.map(l=>{
+    const key = lessonKey(l);
+    const live = l.startMin<=nowMin && l.endMin>nowMin;
+    const cls = typeClass(l.type) + (l.online ? " online" : "") + (key===selectedKey ? " selected" : "");
+    return '<div class="list-item '+cls+'" data-key="'+encodeURIComponent(key)+'">'
+      +'<div class="list-time mono">'+l.start+'–'+l.end+(live?' <span style="color:var(--now)">●</span>':'')+'</div>'
+      +'<div class="list-room mono">'+escapeHtml(l.room)+'</div>'
+      +'<div class="list-teacher">'+escapeHtml(l.teacher.split(" ").slice(0,2).join(" "))+'</div>'
+      +'<div class="list-subject">'+escapeHtml(l.discipline)+'</div>'
+      +'<div class="list-group mono">'+escapeHtml(l.group)+'</div>'
+      +'</div>';
+  }).join("");
+
+  boardwrap.innerHTML =
+    '<div class="board">'
+    +'<div class="listhead"><span style="width:100px;flex-shrink:0;">Время</span><span style="width:84px;flex-shrink:0;">Ауд.</span><span style="flex:1.2;">Преподаватель</span><span style="flex:2;">Предмет</span><span style="flex:1;">Группа</span></div>'
+    +rows
+    +'</div>';
+
+  document.querySelectorAll(".list-item").forEach(el=>{
+    el.addEventListener("click", (ev)=>{
+      ev.stopPropagation();
+      handleItemClick(el, items);
+    });
+  });
+}
+
+function handleItemClick(el, sourceArr){
+  const key = decodeURIComponent(el.getAttribute("data-key"));
+  if(selectedKey === key){
+    selectedKey = null;
+    hideDetailPopup();
+  } else {
+    selectedKey = key;
+    const lesson = sourceArr.find(l=>lessonKey(l)===key);
+    if(lesson) showDetailPopup(lesson, el);
+  }
+  render();
 }
 
 function nowLineOverlay(html){
@@ -413,11 +490,11 @@ function vlines(ticks, winStart, span){
   }).join("");
 }
 
-function showDetail(l){
-  const d = document.getElementById("detail");
-  d.classList.add("show");
-  d.innerHTML =
-    '<div class="detail-top">'
+function showDetailPopup(l, anchorEl){
+  const pop = document.getElementById("detailPopup");
+  pop.innerHTML =
+    '<button class="closepop" id="closePopBtn" aria-label="Закрыть">×</button>'
+    +'<div class="detail-top">'
     +'<div><div class="detail-room mono">'+escapeHtml(l.room)+'</div></div>'
     +'<div class="detail-time mono">'+l.start+'–'+l.end+' · '+escapeHtml(l.day)+'</div>'
     +'</div>'
@@ -427,9 +504,38 @@ function showDetail(l){
     +escapeHtml(l.teacher)+'<br>'
     +escapeHtml(l.group)+' · '+escapeHtml(l.level)
     +'</div>';
+  pop.classList.add("show");
+  document.getElementById("closePopBtn").addEventListener("click", (ev)=>{
+    ev.stopPropagation();
+    selectedKey = null;
+    hideDetailPopup();
+    render();
+  });
+
+  const rect = anchorEl.getBoundingClientRect();
+  pop.style.left = "-9999px";
+  pop.style.top = "-9999px";
+  requestAnimationFrame(()=>{
+    const pw = pop.offsetWidth, ph = pop.offsetHeight;
+    const vw = window.innerWidth, vh = window.innerHeight;
+    let left = rect.right + 12;
+    let top = rect.top;
+    if(left + pw > vw - 10){ left = rect.left - pw - 12; }
+    if(left < 10){ left = Math.min(Math.max(rect.left, 10), vw - pw - 10); }
+    if(top + ph > vh - 10){ top = vh - ph - 10; }
+    if(top < 10) top = 10;
+    pop.style.left = left + "px";
+    pop.style.top = top + "px";
+  });
+}
+
+function hideDetailPopup(){
+  document.getElementById("detailPopup").classList.remove("show");
 }
 
 function emptyState(big, small){
+  hideDetailPopup();
+  selectedKey = null;
   return '<div class="board"><div class="empty-state"><div class="big">'+escapeHtml(big)+'</div><div>'+escapeHtml(small)+'</div></div></div>';
 }
 
@@ -457,6 +563,8 @@ document.getElementById("winbtns").addEventListener("click", (e)=>{
   if(!btn) return;
   windowMode = btn.getAttribute("data-h");
   document.querySelectorAll(".winbtn").forEach(b=>b.classList.toggle("active", b===btn));
+  selectedKey = null;
+  hideDetailPopup();
   render();
 });
 document.querySelector('.winbtn[data-h="4"]').classList.add("active");
@@ -477,6 +585,22 @@ teacherSelectEl.addEventListener("change", (e)=>{
   render();
 });
 
+const roomSelectEl = document.getElementById("roomSelect");
+Array.from(new Set(LESSONS.map(l=>l.room))).sort((a,b)=>{
+  const ka=roomSortKey(a), kb=roomSortKey(b);
+  if(ka[0]!==kb[0]) return ka[0]-kb[0];
+  if(ka[1]!==kb[1]) return ka[1]-kb[1];
+  return ka[2].localeCompare(kb[2]);
+}).forEach(room=>{
+  const opt = document.createElement("option");
+  opt.value = room; opt.textContent = room;
+  roomSelectEl.appendChild(opt);
+});
+roomSelectEl.addEventListener("change", (e)=>{
+  roomFilter = e.target.value;
+  render();
+});
+
 const groupInputEl = document.getElementById("groupInput");
 groupInputEl.addEventListener("input", (e)=>{
   groupFilter = e.target.value;
@@ -484,9 +608,25 @@ groupInputEl.addEventListener("input", (e)=>{
 });
 
 document.getElementById("clearFilters").addEventListener("click", ()=>{
-  teacherFilter = ""; groupFilter = "";
-  teacherSelectEl.value = ""; groupInputEl.value = "";
+  teacherFilter = ""; groupFilter = ""; roomFilter = "";
+  teacherSelectEl.value = ""; groupInputEl.value = ""; roomSelectEl.value = "";
   render();
+});
+
+document.addEventListener("click", (e)=>{
+  const pop = document.getElementById("detailPopup");
+  if(!pop.classList.contains("show")) return;
+  if(pop.contains(e.target)) return;
+  selectedKey = null;
+  hideDetailPopup();
+  render();
+});
+document.addEventListener("keydown", (e)=>{
+  if(e.key === "Escape"){
+    selectedKey = null;
+    hideDetailPopup();
+    render();
+  }
 });
 
 render();
