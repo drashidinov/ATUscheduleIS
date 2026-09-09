@@ -65,8 +65,8 @@ function getZoned(tzKey){
     d = now; useUTC = false;
   } else {
     const offsetHours = TZ_OFFSETS[tzKey] !== undefined ? TZ_OFFSETS[tzKey] : 5;
-    const utcMs = now.getTime() + now.getTimezoneOffset()*60000;
-    d = new Date(utcMs + offsetHours*3600000);
+    // Date#getTime() is already the true UTC epoch — no device-timezone correction needed.
+    d = new Date(now.getTime() + offsetHours*3600000);
     useUTC = true;
   }
   const p = partsFromDate(d, useUTC);
