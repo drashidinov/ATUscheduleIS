@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Кафедра ИС — расписание сейчас</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0B0E14;
+    --panel:#131826;
+    --row:#171D2C;
+    --row-alt:#141a28;
+    --grid-line:#232A3B;
+    --text:#EDEFF5;
+    --text-dim:#8890A2;
+    --text-faint:#5B6376;
+    --now:#FFB020;
+    --lecture:#3E8EEF;   --lecture-dim:#1E3A5C;
+    --practice:#33B27A;  --practice-dim:#1B3F30;
+    --lab:#E0A73E;       --lab-dim:#4A3A16;
+    --other:#8B8FA3;     --other-dim:#33374A;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter',system-ui,sans-serif;
+    min-height:100vh;
+    padding:20px 24px 32px;
+  }
+  .mono{font-family:'JetBrains Mono',ui-monospace,monospace;}
+  h2.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);}
+
+  .topbar{
+    display:flex; justify-content:space-between; align-items:flex-end;
+    border-bottom:1px solid var(--grid-line); padding-bottom:14px; margin-bottom:14px;
+    flex-wrap:wrap; gap:12px;
+  }
+  .brand .eyebrow{font-size:13px; color:var(--text-dim); letter-spacing:.02em; margin:0 0 2px;}
+  .brand h1{font-size:26px; font-weight:600; margin:0; letter-spacing:-.01em;}
+  .clockwrap{text-align:right;}
+  .clock{font-size:38px; font-weight:700; line-height:1; letter-spacing:.02em;}
+  .dateline{font-size:14px; color:var(--text-dim); margin-top:4px; display:flex; gap:8px; justify-content:flex-end; align-items:center;}
+  .live-dot{width:8px; height:8px; border-radius:50%; background:var(--now); display:inline-block; animation:pulse 2s infinite;}
+  @keyframes pulse{0%,100%{opacity:1;} 50%{opacity:.35;}}
+
+  .toolbar{display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:10px;}
+  .legend{display:flex; gap:16px; flex-wrap:wrap;}
+  .legend-item{display:flex; align-items:center; gap:6px; font-size:13px; color:var(--text-dim);}
+  .swatch{width:11px; height:11px; border-radius:2px;}
+  .winbtns{display:flex; gap:10px; align-items:center; flex-wrap:wrap;}
+  .filters{display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:14px;}
+  .filters label{font-size:13px; color:var(--text-dim);}
+  .filters .fwrap{display:flex; align-items:center; gap:8px;}
+  select.tzselect, select.teacherselect, input.groupinput{
+    background:var(--panel); border:1px solid var(--grid-line); color:var(--text);
+    font-family:'JetBrains Mono',monospace; font-size:13px; padding:5px 10px; border-radius:6px;
+  }
+  select.tzselect, select.teacherselect{cursor:pointer;}
+  select.teacherselect{max-width:260px;}
+  input.groupinput{width:170px;}
+  input.groupinput::placeholder{color:var(--text-faint);}
+  select.tzselect:focus, select.teacherselect:focus, input.groupinput:focus{outline:1px solid var(--now);}
+  .clearbtn{
+    background:transparent; border:1px solid var(--grid-line); color:var(--text-dim);
+    font-size:12px; padding:5px 10px; border-radius:6px; cursor:pointer;
+  }
+  .clearbtn:hover{color:var(--text); border-color:var(--text-dim);}
+  .winbtn{
+    background:transparent; border:1px solid var(--grid-line); color:var(--text-dim);
+    font-family:'JetBrains Mono',monospace; font-size:13px; padding:5px 12px; border-radius:6px; cursor:pointer;
+  }
+  .winbtn.active{border-color:var(--now); color:var(--now);}
+
+  .summary{font-size:14px; color:var(--text-dim); margin-bottom:14px;}
+  .summary b{color:var(--text); font-weight:600;}
+
+  .board{background:var(--panel); border:1px solid var(--grid-line); border-radius:10px; overflow:hidden;}
+  .ruler{display:flex; border-bottom:1px solid var(--grid-line);}
+  .ruler-label-col{width:150px; flex-shrink:0; border-right:1px solid var(--grid-line);}
+  .ruler-track{position:relative; flex:1; height:34px;}
+  .tick{position:absolute; top:0; bottom:0; border-left:1px solid var(--grid-line); font-size:12px; color:var(--text-faint); padding-left:6px; padding-top:8px; font-family:'JetBrains Mono',monospace;}
+
+  .rows{position:relative;}
+  .row{display:flex; border-bottom:1px solid var(--grid-line); min-height:64px;}
+  .row:last-child{border-bottom:none;}
+  .room-col{
+    width:150px; flex-shrink:0; border-right:1px solid var(--grid-line);
+    display:flex; align-items:center; padding:0 14px;
+    font-family:'JetBrains Mono',monospace; font-weight:700; font-size:16px;
+  }
+  .track{position:relative; flex:1;}
+  .track .vline{position:absolute; top:0; bottom:0; border-left:1px solid var(--grid-line);}
+
+  .block{
+    position:absolute; top:6px; bottom:6px; border-radius:6px;
+    border-left:4px solid; padding:6px 10px; overflow:hidden; cursor:pointer;
+    display:flex; flex-direction:column; justify-content:center; gap:2px;
+    transition:filter .15s;
+  }
+  .block:hover{filter:brightness(1.15);}
+  .block.selected{outline:2px solid var(--text);}
+  .block .t-name{font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .block .t-sub{font-size:11.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; opacity:.85;}
+  .block .t-meta{font-size:10.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; opacity:.65; font-family:'JetBrains Mono',monospace;}
+  .block.type-lecture{background:var(--lecture-dim); border-color:var(--lecture);}
+  .block.type-practice{background:var(--practice-dim); border-color:var(--practice);}
+  .block.type-lab{background:var(--lab-dim); border-color:var(--lab);}
+  .block.type-other{background:var(--other-dim); border-color:var(--other);}
+  .block.online{border-style:dashed;}
+
+  .nowline{position:absolute; top:0; bottom:0; width:0; border-left:2px solid var(--now); z-index:5; transition:left 20s linear;}
+  .nowline .nowhead{
+    position:absolute; top:-9px; left:-6px; width:12px; height:12px; border-radius:50%;
+    background:var(--now);
+  }
+  .nowline .nowtag{
+    position:absolute; top:-30px; left:-24px; background:var(--now); color:#241600;
+    font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700;
+    padding:2px 6px; border-radius:4px; white-space:nowrap;
+  }
+
+  .detailpopup{
+    position:fixed; z-index:50; max-width:320px; min-width:240px;
+    background:var(--panel); border:1px solid var(--grid-line); border-radius:10px;
+    padding:16px 18px; box-shadow:0 10px 30px rgba(0,0,0,.5);
+    display:none;
+  }
+  .detailpopup.show{display:block;}
+  .closepop{
+    position:absolute; top:8px; right:8px; background:transparent; border:none;
+    color:var(--text-dim); cursor:pointer; font-size:18px; line-height:1; padding:4px 7px; border-radius:5px;
+  }
+  .closepop:hover{color:var(--text); background:var(--row-alt);}
+  .detail-top{display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap;}
+  .detail-room{font-family:'JetBrains Mono',monospace; font-size:22px; font-weight:700;}
+  .detail-time{font-family:'JetBrains Mono',monospace; font-size:15px; color:var(--text-dim);}
+  .detail-subject{font-size:17px; font-weight:600; margin:10px 0 4px;}
+  .detail-meta{font-size:14px; color:var(--text-dim); line-height:1.6;}
+  .badge{display:inline-block; font-size:12px; font-weight:600; padding:2px 8px; border-radius:5px; margin-right:8px;}
+  .badge.type-lecture{background:var(--lecture-dim); color:var(--lecture);}
+  .badge.type-practice{background:var(--practice-dim); color:var(--practice);}
+  .badge.type-lab{background:var(--lab-dim); color:var(--lab);}
+  .badge.type-other{background:var(--other-dim); color:var(--other);}
+
+  .empty-state{padding:60px 20px; text-align:center; color:var(--text-dim);}
+  .empty-state .big{font-size:20px; color:var(--text); font-weight:600; margin-bottom:6px;}
+
+  .listhead{display:flex; padding:8px 14px; border-bottom:1px solid var(--grid-line); font-size:11.5px; color:var(--text-faint); text-transform:none;}
+  .listhead span{padding-left:4px;}
+  .list-item{
+    display:flex; align-items:center; gap:14px; padding:11px 14px; border-bottom:1px solid var(--grid-line);
+    border-left:4px solid; cursor:pointer; transition:background .15s;
+  }
+  .list-item:last-child{border-bottom:none;}
+  .list-item:hover{filter:brightness(1.1);}
+  .list-item.type-lecture{background:var(--lecture-dim); border-color:var(--lecture);}
+  .list-item.type-practice{background:var(--practice-dim); border-color:var(--practice);}
+  .list-item.type-lab{background:var(--lab-dim); border-color:var(--lab);}
+  .list-item.type-other{background:var(--other-dim); border-color:var(--other);}
+  .list-item.online{border-style:dashed;}
+  .list-item.selected{outline:2px solid var(--text);}
+  .list-time{font-family:'JetBrains Mono',monospace; font-weight:700; width:100px; flex-shrink:0; font-size:14px;}
+  .list-room{font-family:'JetBrains Mono',monospace; font-weight:700; width:84px; flex-shrink:0; font-size:14px;}
+  .list-teacher{flex:1.2; min-width:130px; font-weight:600; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .list-subject{flex:2; min-width:160px; font-size:13px; color:var(--text-dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .list-group{flex:1; min-width:100px; font-size:12px; color:var(--text-faint); font-family:'JetBrains Mono',monospace; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+
+  .pagefooter{
+    margin-top:28px; padding-top:14px; border-top:1px solid var(--grid-line);
+    display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;
+    font-size:12.5px; color:var(--text-faint);
+  }
+  .pagefooter a{color:var(--text-dim); text-decoration:none; border-bottom:1px dotted var(--text-faint);}
+  .pagefooter a:hover{color:var(--text);}
+</style>
+</head>
+<body>
+<h2 class="sr-only">Табло текущего расписания занятий кафедры информационных систем: аудитория, преподаватель и предмет в реальном времени.</h2>
+
+<div class="topbar">
+  <div class="brand">
+    <p class="eyebrow">Кафедра ИС</p>
+    <h1>Расписание сейчас</h1>
+  </div>
+  <div class="clockwrap">
+    <div class="clock mono" id="clock">--:--:--</div>
+    <div class="dateline"><span class="live-dot"></span><span id="dateline">—</span></div>
+  </div>
+</div>
+
+<div class="toolbar">
+  <div class="legend">
+    <div class="legend-item"><span class="swatch" style="background:var(--lecture)"></span>Лекция</div>
+    <div class="legend-item"><span class="swatch" style="background:var(--practice)"></span>Практика</div>
+    <div class="legend-item"><span class="swatch" style="background:var(--lab)"></span>Лабораторная</div>
+    <div class="legend-item"><span class="swatch" style="background:var(--other); border:1px dashed var(--text-dim)"></span>Онлайн / прочее</div>
+  </div>
+  <div class="winbtns" id="winbtns">
+    <label for="tzSelect" style="font-size:13px;color:var(--text-dim);">Часовой пояс</label>
+    <select class="tzselect" id="tzSelect">
+      <option value="Asia/Almaty" selected>Алматы / Астана (UTC+5)</option>
+      <option value="local">Устройство (авто)</option>
+      <option value="Asia/Bishkek">Бишкек (UTC+6)</option>
+      <option value="Asia/Tashkent">Ташкент (UTC+5)</option>
+      <option value="Europe/Moscow">Москва (UTC+3)</option>
+      <option value="Asia/Yekaterinburg">Екатеринбург (UTC+5)</option>
+      <option value="UTC">UTC</option>
+    </select>
+    <button class="winbtn" data-h="1">1ч (список)</button>
+    <button class="winbtn" data-h="3">Окно 3ч</button>
+    <button class="winbtn" data-h="4">Окно 4ч</button>
+    <button class="winbtn" data-h="day">Весь день</button>
+  </div>
+</div>
+
+<div class="filters">
+  <div class="fwrap">
+    <label for="teacherSelect">Преподаватель</label>
+    <select class="teacherselect" id="teacherSelect"><option value="">Все преподаватели</option></select>
+  </div>
+  <div class="fwrap">
+    <label for="roomSelect">Аудитория</label>
+    <select class="teacherselect" id="roomSelect"><option value="">Все аудитории</option></select>
+  </div>
+  <div class="fwrap">
+    <label for="groupInput">Группа</label>
+    <input class="groupinput" id="groupInput" type="text" placeholder="например, ИС-25">
+  </div>
+  <button class="clearbtn" id="clearFilters">Сбросить фильтры</button>
+</div>
+
+<div class="summary" id="summary">Загрузка…</div>
+
+<div id="boardwrap"></div>
+
+<div class="detailpopup" id="detailPopup"></div>
+
+<div class="pagefooter">
+  <span>Табло расписания · Кафедра ИС · v1.2.0</span>
+  <span>По всем вопросам и улучшениям — <a href="mailto:d.rashidinov@atu.edu.kz">d.rashidinov@atu.edu.kz</a></span>
+</div>
+
+<script src="lessons_data.js"></script>
+<script>
+PLACEHOLDER_SCRIPT
+</script>
+</body>
+</html>
