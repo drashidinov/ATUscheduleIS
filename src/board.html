@@ -55,15 +55,15 @@
   .filters{display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:14px;}
   .filters label{font-size:13px; color:var(--text-dim);}
   .filters .fwrap{display:flex; align-items:center; gap:8px;}
-  select.tzselect, select.teacherselect, input.groupinput{
+  select.teacherselect, input.groupinput{
     background:var(--panel); border:1px solid var(--grid-line); color:var(--text);
     font-family:'JetBrains Mono',monospace; font-size:13px; padding:5px 10px; border-radius:6px;
   }
-  select.tzselect, select.teacherselect{cursor:pointer;}
+  select.teacherselect{cursor:pointer;}
   select.teacherselect{max-width:260px;}
   input.groupinput{width:170px;}
   input.groupinput::placeholder{color:var(--text-faint);}
-  select.tzselect:focus, select.teacherselect:focus, input.groupinput:focus{outline:1px solid var(--now);}
+  select.teacherselect:focus, input.groupinput:focus{outline:1px solid var(--now);}
   .clearbtn{
     background:transparent; border:1px solid var(--grid-line); color:var(--text-dim);
     font-size:12px; padding:5px 10px; border-radius:6px; cursor:pointer;
@@ -223,16 +223,6 @@
     <div class="legend-item"><span class="swatch" style="background:var(--other); border:1px dashed var(--text-dim)"></span>Онлайн / прочее</div>
   </div>
   <div class="winbtns" id="winbtns">
-    <label for="tzSelect" style="font-size:13px;color:var(--text-dim);">Часовой пояс</label>
-    <select class="tzselect" id="tzSelect">
-      <option value="Asia/Almaty" selected>Алматы / Астана (UTC+5)</option>
-      <option value="local">Устройство (авто)</option>
-      <option value="Asia/Bishkek">Бишкек (UTC+6)</option>
-      <option value="Asia/Tashkent">Ташкент (UTC+5)</option>
-      <option value="Europe/Moscow">Москва (UTC+3)</option>
-      <option value="Asia/Yekaterinburg">Екатеринбург (UTC+5)</option>
-      <option value="UTC">UTC</option>
-    </select>
     <button class="winbtn" data-h="1">1ч (список)</button>
     <button class="winbtn" data-h="3">Окно 3ч</button>
     <button class="winbtn" data-h="4">Окно 4ч</button>
@@ -264,7 +254,7 @@
 <div class="detailpopup" id="detailPopup"></div>
 
 <div class="pagefooter">
-  <span>Табло расписания · Кафедра ИС · v1.3.1</span>
+  <span>Табло расписания · Кафедра ИС · v1.4.0</span>
   <span>По всем вопросам и улучшениям — <a href="mailto:d.rashidinov@atu.edu.kz">d.rashidinov@atu.edu.kz</a></span>
 </div>
 

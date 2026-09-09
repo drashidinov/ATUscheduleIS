@@ -4,7 +4,7 @@ const REFRESH_MS = 15000;
 
 let windowMode = "4";
 let selectedKey = null;
-let selectedTz = "Asia/Almaty";
+const TZ = "Asia/Almaty"; // UTC+5, фиксировано
 let teacherFilter = "";
 let groupFilter = "";
 let roomFilter = "";
@@ -62,7 +62,7 @@ function lessonKey(l){
 }
 
 function render(){
-  const z = getZoned(selectedTz);
+  const z = getZoned(TZ);
   document.getElementById("clock").textContent =
     pad(z.hour)+":"+pad(z.minute)+":"+pad(z.second);
   const todayName = z.dayName;
@@ -347,11 +347,6 @@ document.getElementById("swapBtn").addEventListener("click", ()=>{
   render();
 });
 
-document.getElementById("tzSelect").addEventListener("change", (e)=>{
-  selectedTz = e.target.value;
-  render();
-});
-
 const teacherSelectEl = document.getElementById("teacherSelect");
 Array.from(new Set(LESSONS.map(l=>l.teacher))).sort((a,b)=>a.localeCompare(b,"ru")).forEach(name=>{
   const opt = document.createElement("option");
@@ -405,7 +400,7 @@ document.addEventListener("keydown", (e)=>{
 render();
 setInterval(render, REFRESH_MS);
 setInterval(()=>{
-  const z = getZoned(selectedTz);
+  const z = getZoned(TZ);
   const c = document.getElementById("clock");
   if(c) c.textContent = pad(z.hour)+":"+pad(z.minute)+":"+pad(z.second);
 }, 1000);
