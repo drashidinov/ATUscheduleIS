@@ -25,5 +25,10 @@ def main():
     out.write_text(html, encoding="utf-8")
     print(f"Built {out} ({len(html)} bytes)")
 
+    # Also mirror to repo root as index.html so GitHub Pages can serve it directly.
+    root_copy = ROOT / "index.html"
+    root_copy.write_text(html, encoding="utf-8")
+    print(f"Mirrored to {root_copy}")
+
 if __name__ == "__main__":
     main()

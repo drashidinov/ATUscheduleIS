@@ -36,6 +36,8 @@ scripts/
 dist/
   kafedra-is-board.html                          готовое табло (открыть в браузере)
   Кафедра_ИС_занятия_преподавателей_2026-2027.xlsx  табличный отчёт по всем преподавателям
+index.html          зеркало dist/kafedra-is-board.html в корне — для GitHub Pages
+                     (Settings → Pages → Deploy from branch → main / root)
 ```
 
 ## Пересборка после изменения данных
@@ -48,7 +50,7 @@ dist/
 ```bash
 python3 scripts/extract.py          # -> data/results.json
 python3 scripts/parse_lessons.py    # -> data/parsed_lessons.json (+ src/lessons_data.js обновите вручную/скриптом)
-python3 scripts/build.py            # -> dist/kafedra-is-board.html
+python3 scripts/build.py            # -> dist/kafedra-is-board.html и корневой index.html
 python3 scripts/build_report.py     # -> dist/Кафедра_ИС_занятия_преподавателей_2026-2027.xlsx
 ```
 
