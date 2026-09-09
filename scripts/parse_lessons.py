@@ -125,14 +125,17 @@ for d in data:
         continue
     text = d["Занятие"]
     stripped = strip_all_names(text)
+    stripped = re.sub(r'(\d)-/([A-Za-zА-Яа-яЁё])', r'\1-\2', stripped)  # fix stray "-/" typos e.g. "403-/С"
     room = detect_room(stripped)
     if room == "?":
         room = detect_room(text)
     if room == "?":
         if "класс" in stripped.lower():
             room = "B-class"
-        elif "дуальный" in stripped.lower():
+            stripped = re.sub(r'в?\s*класс', ' ', stripped, flags=re.I)
+        elif "дуальн" in stripped.lower():
             room = "Дуальное обучение"
+            stripped = re.sub(r'дуальн\w*(\s+обучени\w*)?', ' ', stripped, flags=re.I)
     room = norm_room(room)
     ttype = detect_type(text)
     is_online = bool(ONLINE_RE.search(text))
