@@ -143,6 +143,7 @@ for d in data:
     if not discipline:
         discipline = "Занятие"
     discipline = discipline[0].upper() + discipline[1:]
+
     parsed.append({
         "teacher": d["Преподаватель"],
         "level": d["Уровень/Курс"],
@@ -154,6 +155,26 @@ for d in data:
         "online": is_online,
         "discipline": discipline,
     })
+
+# Labs run 2 academic hours (~100 min); the source spreadsheet only captures a single
+# ~50-min slot per row. Extend each lab's end time to the next academic hour, but never
+# past the next scheduled event in the same room/day (avoids fabricating room clashes).
+LAB_TARGET_MIN = 100
+by_room_day = {}
+for p in parsed:
+    by_room_day.setdefault((p["room"], p["day"]), []).append(p)
+
+for key, items in by_room_day.items():
+    items.sort(key=lambda x: x["startMin"])
+    for i, item in enumerate(items):
+        if item["type"] != "Лабораторная":
+            continue
+        target_end = item["startMin"] + LAB_TARGET_MIN
+        if i + 1 < len(items):
+            target_end = min(target_end, items[i+1]["startMin"])
+        target_end = max(target_end, item["endMin"])  # never shrink below what was captured
+        item["endMin"] = target_end
+        item["end"] = f"{target_end//60:02d}:{target_end%60:02d}"
 
 json.dump(parsed, open("/home/claude/work/parsed_lessons.json","w",encoding="utf-8"), ensure_ascii=False)
 print("parsed", len(parsed))
