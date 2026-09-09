@@ -133,7 +133,7 @@ function render(){
   summary.innerHTML = "Сейчас идёт <b>"+liveCount+"</b> занят"+plural(liveCount)+" · показано "+windowLabel+" · "+rooms.length+" аудитори"+plural2(rooms.length)+filterNote;
 
   const swapBtn = document.getElementById("swapBtn");
-  const isListMode = (windowMode === "1" || windowMode === "day");
+  const isListMode = (windowMode === "1");
   swapBtn.classList.toggle("visible", isListMode);
   swapBtn.classList.toggle("active", swapOrder);
 

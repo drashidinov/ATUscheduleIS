@@ -264,7 +264,7 @@
 <div class="detailpopup" id="detailPopup"></div>
 
 <div class="pagefooter">
-  <span>Табло расписания · Кафедра ИС · v1.3.0</span>
+  <span>Табло расписания · Кафедра ИС · v1.3.1</span>
   <span>По всем вопросам и улучшениям — <a href="mailto:d.rashidinov@atu.edu.kz">d.rashidinov@atu.edu.kz</a></span>
 </div>
 
@@ -406,7 +406,7 @@ function render(){
   summary.innerHTML = "Сейчас идёт <b>"+liveCount+"</b> занят"+plural(liveCount)+" · показано "+windowLabel+" · "+rooms.length+" аудитори"+plural2(rooms.length)+filterNote;
 
   const swapBtn = document.getElementById("swapBtn");
-  const isListMode = (windowMode === "1" || windowMode === "day");
+  const isListMode = (windowMode === "1");
   swapBtn.classList.toggle("visible", isListMode);
   swapBtn.classList.toggle("active", swapOrder);
 
