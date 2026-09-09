@@ -180,6 +180,19 @@
   .swapbtn.active{border-color:var(--now); color:var(--now);}
   .swapbtn:hover{color:var(--text); border-color:var(--text-dim);}
 
+  .controlstoggle{
+    display:none; width:100%; margin-bottom:10px;
+    background:var(--panel); border:1px solid var(--grid-line); color:var(--text-dim);
+    font-family:'Inter',system-ui,sans-serif; font-size:13.5px; font-weight:600;
+    padding:10px 14px; border-radius:8px; cursor:pointer;
+    align-items:center; justify-content:center; gap:6px;
+  }
+  .controlstoggle:active{background:var(--row);}
+  .controlstoggle .dot{
+    width:7px; height:7px; border-radius:50%; background:var(--now); display:none;
+  }
+  .controlstoggle.has-filters .dot{display:inline-block;}
+
   @media (max-width:640px){
     body{padding:14px 12px 24px;}
     .clock{font-size:28px;}
@@ -190,6 +203,11 @@
     .filters{flex-direction:column; align-items:stretch;}
     .filters .fwrap{width:100%;}
     select.teacherselect, input.groupinput{max-width:none; width:100%;}
+
+    .controlstoggle{display:flex;}
+    .controls{display:none;}
+    .controls.open{display:block;}
+    .summary{margin-top:2px;}
   }
 
   .pagefooter{
@@ -246,6 +264,11 @@
   </div>
 </div>
 
+<button class="controlstoggle" id="controlsToggle" aria-expanded="false">
+  <span class="dot"></span><span id="controlsToggleLabel">Фильтры и вид</span> <span id="controlsToggleIcon">▾</span>
+</button>
+
+<div class="controls" id="controlsPanel">
 <div class="toolbar">
   <div class="legend">
     <div class="legend-item"><span class="swatch" style="background:var(--lecture)"></span>Лекция</div>
@@ -277,6 +300,7 @@
   </div>
   <button class="clearbtn" id="clearFilters">Сбросить фильтры</button>
 </div>
+</div>
 
 <div class="summary" id="summary">Загрузка…</div>
 
@@ -285,7 +309,7 @@
 <div class="detailpopup" id="detailPopup"></div>
 
 <div class="pagefooter">
-  <span>Табло расписания · Кафедра ИС · v1.5.0</span>
+  <span>Табло расписания · Кафедра ИС · v1.6.0</span>
   <span>По всем вопросам и улучшениям — <a href="mailto:d.rashidinov@atu.edu.kz">d.rashidinov@atu.edu.kz</a></span>
 </div>
 

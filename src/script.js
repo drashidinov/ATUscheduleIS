@@ -44,6 +44,7 @@ function savePrefs(){
       tz: selectedTz, windowMode, teacherFilter, roomFilter, groupFilter, swapOrder
     }));
   } catch(e){ /* ignore — persistence is a nice-to-have, not required */ }
+  updateControlsToggleState();
 }
 
 function partsFromDate(d, useUTC){
@@ -381,6 +382,21 @@ function escapeHtml(s){
 }
 
 loadPrefs();
+
+const controlsToggle = document.getElementById("controlsToggle");
+const controlsPanel = document.getElementById("controlsPanel");
+const controlsToggleIcon = document.getElementById("controlsToggleIcon");
+controlsToggle.addEventListener("click", ()=>{
+  const open = controlsPanel.classList.toggle("open");
+  controlsToggle.setAttribute("aria-expanded", open ? "true" : "false");
+  controlsToggleIcon.textContent = open ? "▴" : "▾";
+});
+
+function updateControlsToggleState(){
+  const active = !!(teacherFilter || roomFilter || groupFilter || swapOrder || windowMode !== "4");
+  controlsToggle.classList.toggle("has-filters", active);
+}
+updateControlsToggleState();
 
 document.getElementById("winbtns").addEventListener("click", (e)=>{
   const btn = e.target.closest(".winbtn");
