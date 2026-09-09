@@ -156,10 +156,18 @@ for d in data:
         "discipline": discipline,
     })
 
-# Labs run 2 academic hours (~100 min); the source spreadsheet only captures a single
-# ~50-min slot per row. Extend each lab's end time to the next academic hour, but never
-# past the next scheduled event in the same room/day (avoids fabricating room clashes).
-LAB_TARGET_MIN = 100
+# Labs run 2 real academic hours: 50 min + a break + another 50 min. The source
+# spreadsheet only captures the first 50-min slot per row. Breaks between slots are
+# normally 15 min, except after the slot ending at 11:30, which is a 30-min long recess.
+LONG_BREAK_END_MIN = 11*60 + 30  # 11:30
+LONG_BREAK_MIN = 30
+NORMAL_BREAK_MIN = 15
+
+def lab_true_end(start_min, original_end_min):
+    slot_len = original_end_min - start_min  # usually 50 (sometimes 45 on other grids)
+    break_min = LONG_BREAK_MIN if original_end_min == LONG_BREAK_END_MIN else NORMAL_BREAK_MIN
+    return start_min + slot_len*2 + break_min
+
 by_room_day = {}
 for p in parsed:
     by_room_day.setdefault((p["room"], p["day"]), []).append(p)
@@ -169,10 +177,11 @@ for key, items in by_room_day.items():
     for i, item in enumerate(items):
         if item["type"] != "Лабораторная":
             continue
-        target_end = item["startMin"] + LAB_TARGET_MIN
+        original_end = item["endMin"]
+        target_end = lab_true_end(item["startMin"], original_end)
         if i + 1 < len(items):
             target_end = min(target_end, items[i+1]["startMin"])
-        target_end = max(target_end, item["endMin"])  # never shrink below what was captured
+        target_end = max(target_end, original_end)  # never shrink below what was captured
         item["endMin"] = target_end
         item["end"] = f"{target_end//60:02d}:{target_end%60:02d}"
 
