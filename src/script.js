@@ -8,6 +8,7 @@ let selectedTz = "Asia/Almaty";
 let teacherFilter = "";
 let groupFilter = "";
 let roomFilter = "";
+let swapOrder = false;
 
 function getZoned(tz){
   const now = new Date();
@@ -41,6 +42,13 @@ function typeClass(t){
 function roomSortKey(r){
   const m = r.match(/^([0-9]+)/);
   return m ? [0, parseInt(m[1],10), r] : [1, 0, r];
+}
+
+function roomSortKeyCmp(a,b){
+  const ka=roomSortKey(a), kb=roomSortKey(b);
+  if(ka[0]!==kb[0]) return ka[0]-kb[0];
+  if(ka[1]!==kb[1]) return ka[1]-kb[1];
+  return ka[2].localeCompare(kb[2]);
 }
 
 function minutesToLabel(mins){
@@ -117,19 +125,19 @@ function render(){
     return;
   }
 
-  const rooms = Array.from(new Set(visible.map(l=>l.room))).sort((a,b)=>{
-    const ka=roomSortKey(a), kb=roomSortKey(b);
-    if(ka[0]!==kb[0]) return ka[0]-kb[0];
-    if(ka[1]!==kb[1]) return ka[1]-kb[1];
-    return ka[2].localeCompare(kb[2]);
-  });
+  const rooms = Array.from(new Set(visible.map(l=>l.room))).sort(roomSortKeyCmp);
 
   const liveCount = visible.filter(l => l.startMin <= nowMin && l.endMin > nowMin).length;
   const filterNote = (teacherFilter || groupFilter || roomFilter) ? " · фильтр активен" : "";
   const windowLabel = windowMode==="day" ? "за весь день" : ("окно <b>"+minutesToLabel(Math.max(winStart,0))+"–"+minutesToLabel(winEnd)+"</b>");
   summary.innerHTML = "Сейчас идёт <b>"+liveCount+"</b> занят"+plural(liveCount)+" · показано "+windowLabel+" · "+rooms.length+" аудитори"+plural2(rooms.length)+filterNote;
 
-  if(windowMode === "1"){
+  const swapBtn = document.getElementById("swapBtn");
+  const isListMode = (windowMode === "1" || windowMode === "day");
+  swapBtn.classList.toggle("visible", isListMode);
+  swapBtn.classList.toggle("active", swapOrder);
+
+  if(isListMode){
     renderListView(visible, nowMin);
     return;
   }
@@ -188,23 +196,35 @@ function render(){
 
 function renderListView(visible, nowMin){
   const boardwrap = document.getElementById("boardwrap");
-  const items = visible.slice().sort((a,b)=> a.startMin-b.startMin || a.room.localeCompare(b.room));
+  const items = visible.slice().sort((a,b)=>
+    swapOrder
+      ? (roomSortKeyCmp(a.room,b.room) || a.startMin-b.startMin)
+      : (a.startMin-b.startMin || a.room.localeCompare(b.room))
+  );
   const rows = items.map(l=>{
     const key = lessonKey(l);
     const live = l.startMin<=nowMin && l.endMin>nowMin;
     const cls = typeClass(l.type) + (l.online ? " online" : "") + (key===selectedKey ? " selected" : "");
+    const timeHtml = '<div class="list-time mono">'+l.start+'–'+l.end+(live?' <span style="color:var(--now)">●</span>':'')+'</div>';
+    const roomHtml = '<div class="list-room mono">'+escapeHtml(l.room)+'</div>';
+    const topHtml = swapOrder ? (roomHtml+timeHtml) : (timeHtml+roomHtml);
     return '<div class="list-item '+cls+'" data-key="'+encodeURIComponent(key)+'">'
-      +'<div class="list-time mono">'+l.start+'–'+l.end+(live?' <span style="color:var(--now)">●</span>':'')+'</div>'
-      +'<div class="list-room mono">'+escapeHtml(l.room)+'</div>'
+      +'<div class="li-top">'+topHtml+'</div>'
+      +'<div class="li-bottom">'
       +'<div class="list-teacher">'+escapeHtml(l.teacher.split(" ").slice(0,2).join(" "))+'</div>'
       +'<div class="list-subject">'+escapeHtml(l.discipline)+'</div>'
       +'<div class="list-group mono">'+escapeHtml(l.group)+'</div>'
+      +'</div>'
       +'</div>';
   }).join("");
 
+  const timeHead = '<span style="width:100px;flex-shrink:0;">Время</span>';
+  const roomHead = '<span style="width:84px;flex-shrink:0;">Ауд.</span>';
+  const headTop = swapOrder ? (roomHead+timeHead) : (timeHead+roomHead);
+
   boardwrap.innerHTML =
     '<div class="board">'
-    +'<div class="listhead"><span style="width:100px;flex-shrink:0;">Время</span><span style="width:84px;flex-shrink:0;">Ауд.</span><span style="flex:1.2;">Преподаватель</span><span style="flex:2;">Предмет</span><span style="flex:1;">Группа</span></div>'
+    +'<div class="listhead">'+headTop+'<span style="flex:1.2;">Преподаватель</span><span style="flex:2;">Предмет</span><span style="flex:1;">Группа</span></div>'
     +rows
     +'</div>';
 
@@ -320,6 +340,13 @@ document.getElementById("winbtns").addEventListener("click", (e)=>{
 });
 document.querySelector('.winbtn[data-h="4"]').classList.add("active");
 
+document.getElementById("swapBtn").addEventListener("click", ()=>{
+  swapOrder = !swapOrder;
+  selectedKey = null;
+  hideDetailPopup();
+  render();
+});
+
 document.getElementById("tzSelect").addEventListener("change", (e)=>{
   selectedTz = e.target.value;
   render();
@@ -337,12 +364,7 @@ teacherSelectEl.addEventListener("change", (e)=>{
 });
 
 const roomSelectEl = document.getElementById("roomSelect");
-Array.from(new Set(LESSONS.map(l=>l.room))).sort((a,b)=>{
-  const ka=roomSortKey(a), kb=roomSortKey(b);
-  if(ka[0]!==kb[0]) return ka[0]-kb[0];
-  if(ka[1]!==kb[1]) return ka[1]-kb[1];
-  return ka[2].localeCompare(kb[2]);
-}).forEach(room=>{
+Array.from(new Set(LESSONS.map(l=>l.room))).sort(roomSortKeyCmp).forEach(room=>{
   const opt = document.createElement("option");
   opt.value = room; opt.textContent = room;
   roomSelectEl.appendChild(opt);
