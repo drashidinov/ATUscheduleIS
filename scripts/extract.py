@@ -139,7 +139,10 @@ def process_sheet(wb_name, level_label, sheet_name, ws):
             return cnt
         cnt_h = count_nonnone(hrow)
         cnt_h1 = count_nonnone(hrow+1) if hrow+1 < next_header else 0
-        group_row = hrow if cnt_h >= cnt_h1 else hrow+1
+        # Prefer the sub-header row (hrow+1) whenever it has any group labels at all —
+        # ties (e.g. a stray language marker like "каз" padding hrow's count) must not
+        # cause us to pick the coarser row and silently drop whole group columns.
+        group_row = hrow if cnt_h > cnt_h1 else hrow+1
         col_group = {}
         for c in range(3, max_col+1):
             v = ws.cell(row=group_row, column=c).value
