@@ -127,6 +127,12 @@ def process_sheet(wb_name, level_label, sheet_name, ws):
         return results
     max_row = ws.max_row
     max_col = ws.max_column
+    merged_ranges = list(ws.merged_cells.ranges)
+    def find_merge(row, col):
+        for mr in merged_ranges:
+            if mr.min_row <= row <= mr.max_row and mr.min_col <= col <= mr.max_col:
+                return mr
+        return None
     for idx, hrow in enumerate(header_rows):
         next_header = header_rows[idx+1] if idx+1 < len(header_rows) else max_row + 1
         # determine group header row: hrow or hrow+1, whichever has more non-none in cols 3..max_col
@@ -147,7 +153,17 @@ def process_sheet(wb_name, level_label, sheet_name, ws):
         for c in range(3, max_col+1):
             v = ws.cell(row=group_row, column=c).value
             if v not in (None, ""):
-                col_group[c] = clean(v)
+                label = clean(v)
+                # A group's header cell is often merged across 2+ columns (e.g. a
+                # combined group split into parallel subgroup sessions). Map every
+                # column in that merge to the same group, not just the anchor column,
+                # or whole subgroup columns silently drop out of the scan.
+                mr = find_merge(group_row, c)
+                if mr:
+                    for cc in range(mr.min_col, mr.max_col+1):
+                        col_group[cc] = label
+                else:
+                    col_group[c] = label
         data_start = group_row + 1
         data_end = next_header - 1
         current_day = None
