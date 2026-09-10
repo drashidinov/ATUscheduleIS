@@ -151,6 +151,13 @@
 
   .listhead{display:flex; padding:8px 14px; border-bottom:1px solid var(--grid-line); font-size:11.5px; color:var(--text-faint); text-transform:none;}
   .listhead span{padding-left:4px;}
+  .day-heading{
+    display:flex; align-items:baseline; gap:8px; padding:10px 14px 6px;
+    font-size:13px; font-weight:700; color:var(--text-dim); border-bottom:1px solid var(--grid-line);
+    background:var(--row);
+  }
+  .day-heading.today{color:var(--now);}
+  .day-heading .count{font-weight:400; font-size:11.5px; color:var(--text-faint);}
   .list-item{
     display:flex; align-items:center; gap:14px; padding:11px 14px; border-bottom:1px solid var(--grid-line);
     border-left:4px solid; cursor:pointer; transition:background .15s;
@@ -279,8 +286,8 @@
   <div class="winbtns" id="winbtns">
     <button class="winbtn" data-h="1">1ч (список)</button>
     <button class="winbtn" data-h="3">Окно 3ч</button>
-    <button class="winbtn" data-h="4">Окно 4ч</button>
     <button class="winbtn" data-h="day">Весь день</button>
+    <button class="winbtn" data-h="week">Неделя</button>
     <button class="swapbtn" id="swapBtn" title="Поменять местами колонки времени и аудитории">⇄ время / аудитория</button>
   </div>
 </div>
@@ -309,7 +316,7 @@
 <div class="detailpopup" id="detailPopup"></div>
 
 <div class="pagefooter">
-  <span>Табло расписания · Кафедра ИС · v1.7.0</span>
+  <span>Табло расписания · Кафедра ИС · v1.8.0</span>
   <span>По всем вопросам и улучшениям — <a href="mailto:d.rashidinov@atu.edu.kz">d.rashidinov@atu.edu.kz</a></span>
 </div>
 

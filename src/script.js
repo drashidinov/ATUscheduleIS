@@ -16,7 +16,7 @@ const TZ_OFFSETS = {
   "UTC": 0,
 };
 
-let windowMode = "4";
+let windowMode = "3";
 let selectedKey = null;
 let selectedTz = "Asia/Almaty";
 let teacherFilter = "";
@@ -30,7 +30,7 @@ function loadPrefs(){
     if(!raw) return;
     const p = JSON.parse(raw);
     if(p.tz && (TZ_OFFSETS[p.tz] !== undefined || p.tz === "local")) selectedTz = p.tz;
-    if(p.windowMode) windowMode = p.windowMode;
+    if(p.windowMode && ["1","3","day","week"].includes(p.windowMode)) windowMode = p.windowMode;
     if(typeof p.teacherFilter === "string") teacherFilter = p.teacherFilter;
     if(typeof p.roomFilter === "string") roomFilter = p.roomFilter;
     if(typeof p.groupFilter === "string") groupFilter = p.groupFilter;
@@ -121,6 +121,11 @@ function render(){
 
   const boardwrap = document.getElementById("boardwrap");
   const summary = document.getElementById("summary");
+
+  if(windowMode === "week"){
+    renderWeekView(nowMin, todayName);
+    return;
+  }
 
   if(todaysAll.length === 0){
     boardwrap.innerHTML = emptyState(
@@ -238,6 +243,74 @@ function render(){
     el.addEventListener("click", (ev)=>{
       ev.stopPropagation();
       handleItemClick(el, visible);
+    });
+  });
+}
+
+const WEEK_DAY_ORDER = ["Понедельник","Вторник","Среда","Четверг","Пятница","Суббота","Воскресенье"];
+
+function renderWeekView(nowMin, todayName){
+  const boardwrap = document.getElementById("boardwrap");
+  const summary = document.getElementById("summary");
+  const swapBtn = document.getElementById("swapBtn");
+  swapBtn.classList.add("visible");
+  swapBtn.classList.toggle("active", swapOrder);
+
+  const filtered = LESSONS.filter(l =>
+    (!teacherFilter || l.teacher === teacherFilter) &&
+    (!roomFilter || l.room === roomFilter) &&
+    (!groupFilter || l.group.toLowerCase().includes(groupFilter.toLowerCase()))
+  );
+
+  if(filtered.length === 0){
+    boardwrap.innerHTML = emptyState(
+      "По выбранным фильтрам занятий за неделю нет",
+      "Попробуйте изменить преподавателя, аудиторию, группу или нажмите «Сбросить фильтры»."
+    );
+    summary.textContent = "";
+    return;
+  }
+
+  const roomsCount = new Set(filtered.map(l=>l.room)).size;
+  const filterNote = (teacherFilter || groupFilter || roomFilter) ? " · фильтр активен" : "";
+  summary.innerHTML = "Показана вся неделя · "+filtered.length+" занят"+plural(filtered.length)+" · "+roomsCount+" аудитори"+plural2(roomsCount)+filterNote;
+
+  const byDay = {};
+  filtered.forEach(l=>{ (byDay[l.day] = byDay[l.day] || []).push(l); });
+
+  const sections = WEEK_DAY_ORDER.filter(day => byDay[day]).map(day=>{
+    const items = byDay[day].slice().sort((a,b)=>
+      swapOrder
+        ? (roomSortKeyCmp(a.room,b.room) || a.startMin-b.startMin)
+        : (a.startMin-b.startMin || a.room.localeCompare(b.room))
+    );
+    const isToday = day === todayName;
+    const heading = '<div class="day-heading'+(isToday?' today':'')+'">'+day+(isToday?' · сегодня':'')+' <span class="count">('+items.length+')</span></div>';
+    const rows = items.map(l=>{
+      const key = lessonKey(l);
+      const live = isToday && l.startMin<=nowMin && l.endMin>nowMin;
+      const cls = typeClass(l.type) + (l.online ? " online" : "") + (key===selectedKey ? " selected" : "");
+      const timeHtml = '<div class="list-time mono">'+l.start+'–'+l.end+(live?' <span style="color:var(--now)">●</span>':'')+'</div>';
+      const roomHtml = '<div class="list-room mono">'+escapeHtml(l.room)+'</div>';
+      const topHtml = swapOrder ? (roomHtml+timeHtml) : (timeHtml+roomHtml);
+      return '<div class="list-item '+cls+'" data-key="'+encodeURIComponent(key)+'">'
+        +'<div class="li-top">'+topHtml+'</div>'
+        +'<div class="li-bottom">'
+        +'<div class="list-teacher">'+escapeHtml(l.teacher.split(" ").slice(0,2).join(" "))+'</div>'
+        +'<div class="list-subject">'+escapeHtml(l.discipline)+'</div>'
+        +'<div class="list-group mono">'+escapeHtml(l.group)+'</div>'
+        +'</div>'
+        +'</div>';
+    }).join("");
+    return heading + rows;
+  }).join("");
+
+  boardwrap.innerHTML = '<div class="board">'+sections+'</div>';
+
+  document.querySelectorAll(".list-item").forEach(el=>{
+    el.addEventListener("click", (ev)=>{
+      ev.stopPropagation();
+      handleItemClick(el, filtered);
     });
   });
 }
@@ -393,7 +466,7 @@ controlsToggle.addEventListener("click", ()=>{
 });
 
 function updateControlsToggleState(){
-  const active = !!(teacherFilter || roomFilter || groupFilter || swapOrder || windowMode !== "4");
+  const active = !!(teacherFilter || roomFilter || groupFilter || swapOrder || windowMode !== "3");
   controlsToggle.classList.toggle("has-filters", active);
 }
 updateControlsToggleState();
