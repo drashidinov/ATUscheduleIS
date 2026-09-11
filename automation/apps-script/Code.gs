@@ -25,15 +25,18 @@
  *     {"folderId": "1EeNW0zytgQ4589orfxgZY3oHPOJ1jZkG", "target": "raw/2_kurs.xlsx"},
  *     {"folderId": "1VqbRrpsIzX0thsfz3V41qC8qBeLNNnLb", "target": "raw/3_kurs.xlsx"},
  *     {"folderId": "1YW_mXxgdIWg3p8Z7APQpfED2H-hTGwKj", "target": "raw/4_kurs.xlsx"},
- *     {"folderId": "<magistracy profile folder id>",     "target": "raw/magistratura_profil.xlsx"},
- *     {"folderId": "<magistracy nauch-ped folder id>",   "target": "raw/magistratura_nauchped.xlsx"},
- *     {"folderId": "<magistracy 2 kurs folder id>",      "target": "raw/magistratura_2kurs.xlsx"},
- *     {"folderId": "<doktorantura folder id>",           "target": "raw/doktorantura_1kurs.xlsx"}
+ *     {"folderId": "1qTpiIHA9tkla7zAug2X6xtOoPKy8U7-F", "namePattern": "проф",       "target": "raw/magistratura_profil.xlsx"},
+ *     {"folderId": "1qTpiIHA9tkla7zAug2X6xtOoPKy8U7-F", "namePattern": "научно",     "target": "raw/magistratura_nauchped.xlsx"},
+ *     {"folderId": "1qTpiIHA9tkla7zAug2X6xtOoPKy8U7-F", "namePattern": "2[_\\s]?курс", "target": "raw/magistratura_2kurs.xlsx"},
+ *     {"folderId": "1qTpiIHA9tkla7zAug2X6xtOoPKy8U7-F", "namePattern": "докторант",  "target": "raw/doktorantura_1kurs.xlsx"}
  *   ]
  * Each entry can use "fileId" instead of "folderId" if the source is a direct
- * link to one file rather than a folder (the newest .xlsx in a folder is
- * picked automatically, so a folder is preferred whenever the file gets
- * re-uploaded under a new name each week).
+ * link to one file rather than a folder. "namePattern" is optional — a
+ * case-insensitive regex tested against the filename, needed when a folder
+ * holds several unrelated schedules (like the magistracy/doctorate folder,
+ * which has all 4 files side by side rather than in their own subfolders):
+ * without it, the newest .xlsx in the folder wins, which is fine when a
+ * folder only ever holds one relevant file (the per-course folders).
  */
 
 function syncSchedules() {
@@ -91,17 +94,21 @@ function syncSchedules() {
   Logger.log("Committed: " + changedTargets.join(", "));
 }
 
-/** Returns the newest .xlsx File in a folder, or a specific file by id. */
+/** Returns the newest .xlsx File in a folder (optionally filtered by a
+ *  case-insensitive regex on the filename, for folders holding several
+ *  unrelated schedules), or a specific file by id. */
 function pickSourceFile(src) {
   if (src.fileId) {
     return DriveApp.getFileById(extractDriveId(src.fileId));
   }
   const folder = DriveApp.getFolderById(extractDriveId(src.folderId));
+  const namePattern = src.namePattern ? new RegExp(src.namePattern, "i") : null;
   const it = folder.getFiles();
   let best = null;
   while (it.hasNext()) {
     const f = it.next();
     if (!/\.xlsx$/i.test(f.getName())) continue;
+    if (namePattern && !namePattern.test(f.getName())) continue;
     if (!best || f.getLastUpdated() > best.getLastUpdated()) best = f;
   }
   return best;

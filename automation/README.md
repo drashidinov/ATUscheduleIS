@@ -38,8 +38,8 @@ scope **repo** (classic) достаточно. Скопируйте токен �
    | `GITHUB_BRANCH` | `main` |
    | `SOURCES` | JSON-массив ниже |
 
-   Значение `SOURCES` (папки 1–4 курса уже известны; для магистратуры/
-   докторантуры подставьте свои ID — см. ниже, как их достать):
+   Значение `SOURCES` — готовый JSON, ничего заменять не нужно (папки 1-4
+   курса и папка магистратуры/докторантуры на том же Drive уже найдены):
 
    ```json
    [
@@ -47,17 +47,22 @@ scope **repo** (classic) достаточно. Скопируйте токен �
      {"folderId": "1EeNW0zytgQ4589orfxgZY3oHPOJ1jZkG", "target": "raw/2_kurs.xlsx"},
      {"folderId": "1VqbRrpsIzX0thsfz3V41qC8qBeLNNnLb", "target": "raw/3_kurs.xlsx"},
      {"folderId": "1YW_mXxgdIWg3p8Z7APQpfED2H-hTGwKj", "target": "raw/4_kurs.xlsx"},
-     {"folderId": "ЗАМЕНИТЬ_НА_ID_ПАПКИ", "target": "raw/magistratura_profil.xlsx"},
-     {"folderId": "ЗАМЕНИТЬ_НА_ID_ПАПКИ", "target": "raw/magistratura_nauchped.xlsx"},
-     {"folderId": "ЗАМЕНИТЬ_НА_ID_ПАПКИ", "target": "raw/magistratura_2kurs.xlsx"},
-     {"folderId": "ЗАМЕНИТЬ_НА_ID_ПАПКИ", "target": "raw/doktorantura_1kurs.xlsx"}
+     {"folderId": "1qTpiIHA9tkla7zAug2X6xtOoPKy8U7-F", "namePattern": "проф", "target": "raw/magistratura_profil.xlsx"},
+     {"folderId": "1qTpiIHA9tkla7zAug2X6xtOoPKy8U7-F", "namePattern": "научно", "target": "raw/magistratura_nauchped.xlsx"},
+     {"folderId": "1qTpiIHA9tkla7zAug2X6xtOoPKy8U7-F", "namePattern": "2[_\\s]?курс", "target": "raw/magistratura_2kurs.xlsx"},
+     {"folderId": "1qTpiIHA9tkla7zAug2X6xtOoPKy8U7-F", "namePattern": "докторант", "target": "raw/doktorantura_1kurs.xlsx"}
    ]
    ```
 
-   **Как достать ID папки/файла:** откройте ссылку на Google Drive — в адресной
-   строке будет `.../folders/1AbCdEf...` (это и есть ID) либо для отдельного
-   файла `.../file/d/1AbCdEf.../view`. Если источник — это один файл, а не
-   папка, используйте ключ `"fileId"` вместо `"folderId"` в этой же записи.
+   Первые 4 записи — по одной папке на курс, скрипт сам берёт самый свежий
+   `.xlsx` внутри. Последние 4 — все четыре файла лежат в одной папке
+   «Магистратура, докторантура» рядом друг с другом, поэтому у них общий
+   `folderId`, а какой из четырёх файлов взять, решает `namePattern`
+   (регулярное выражение по имени файла, без учёта регистра).
+
+   **Если понадобится добавить ещё один источник:** ID папки/файла — это
+   часть ссылки после `/folders/` или `/file/d/`. Можно вставлять и ссылку
+   целиком в `folderId`/`fileId` — скрипт сам вырежет ID.
 
 4. **Run** → выберите функцию `syncSchedules` → **Run**. Google спросит
    разрешения (доступ к Drive и к внешним запросам) — подтвердите. Проверьте
