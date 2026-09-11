@@ -94,9 +94,9 @@ function syncSchedules() {
 /** Returns the newest .xlsx File in a folder, or a specific file by id. */
 function pickSourceFile(src) {
   if (src.fileId) {
-    return DriveApp.getFileById(src.fileId);
+    return DriveApp.getFileById(extractDriveId(src.fileId));
   }
-  const folder = DriveApp.getFolderById(src.folderId);
+  const folder = DriveApp.getFolderById(extractDriveId(src.folderId));
   const it = folder.getFiles();
   let best = null;
   while (it.hasNext()) {
@@ -105,6 +105,18 @@ function pickSourceFile(src) {
     if (!best || f.getLastUpdated() > best.getLastUpdated()) best = f;
   }
   return best;
+}
+
+/**
+ * Accepts either a bare Drive ID, a "folders/<id>" / "file/d/<id>" fragment,
+ * or a full drive.google.com URL, and returns just the bare ID — so pasting
+ * the wrong thing into SOURCES doesn't silently break with "Invalid file or
+ * folder ID".
+ */
+function extractDriveId(raw) {
+  const s = String(raw).trim();
+  const m = s.match(/[-\w]{25,}/); // Drive IDs are long alphanumeric/-/_ strings
+  return m ? m[0] : s;
 }
 
 function ghHeaders(token) {
