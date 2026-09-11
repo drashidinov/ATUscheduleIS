@@ -1,8 +1,12 @@
 import json, re, sys
-sys.path.insert(0, '/home/claude/work')
+from pathlib import Path
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+REPO_ROOT = SCRIPT_DIR.parent
+sys.path.insert(0, str(SCRIPT_DIR))
 from teachers import teachers
 
-data = json.load(open("/home/claude/work/results.json", encoding="utf-8"))
+data = json.load(open(REPO_ROOT / "data" / "results.json", encoding="utf-8"))
 
 KZ_MAP = str.maketrans({'Қ':'К','қ':'к','Ғ':'Г','ғ':'г','Ү':'У','ү':'у','Ұ':'У','ұ':'у',
     'Ә':'А','ә':'а','Ө':'О','ө':'о','Ң':'Н','ң':'н','Һ':'Х','һ':'х','І':'И','і':'и'})
@@ -188,7 +192,5 @@ for key, items in by_room_day.items():
         item["endMin"] = target_end
         item["end"] = f"{target_end//60:02d}:{target_end%60:02d}"
 
-json.dump(parsed, open("/home/claude/work/parsed_lessons.json","w",encoding="utf-8"), ensure_ascii=False)
+json.dump(parsed, open(REPO_ROOT / "data" / "parsed_lessons.json","w",encoding="utf-8"), ensure_ascii=False)
 print("parsed", len(parsed))
-import collections
-print(collections.Counter(p["teacher"]=="Рашиддинов Дамир Рашидинович" for p in parsed))

@@ -1,20 +1,63 @@
-import re, json, sys
+import re, json, sys, os, glob
+from pathlib import Path
 import openpyxl
-sys.path.insert(0, '/home/claude/work')
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+REPO_ROOT = SCRIPT_DIR.parent
+sys.path.insert(0, str(SCRIPT_DIR))
 from teachers import teachers
 
-UPLOAD_DIR = "/mnt/user-data/uploads"
+# UPLOAD_DIR can be overridden via env var so the same script works both for
+# manually-uploaded files (Claude chat) and the automated raw/ folder (GitHub Actions).
+UPLOAD_DIR = os.environ.get("SCHEDULE_SOURCE_DIR", "/mnt/user-data/uploads")
 
-FILES = [
-    ("Г_Ж_1_курс_2026-2027_Фэб_фдтио_Фиит.xlsx", "1 курс (бакалавриат)"),
-    ("2_курс_ФИиИТ_ФИиИС_Расписание_1_академического_периода_2026-2027уч_года.xlsx", "2 курс (бакалавриат)"),
-    ("3_курс_2026-2027.xlsx", "3 курс (бакалавриат)"),
-    ("4_курс_расписание_2026-2027_г_10_09.xlsx", "4 курс (бакалавриат)"),
-    ("МАГИСТРАТУРА_1_КУРС_ПРОФИЛЬНОЕ_НАПР__2026-2027_г_.xlsx", "Магистратура 1 курс (профильное направление)"),
-    ("Расписание_докторантов_1_курс__1_.xlsx", "Докторантура 1 курс"),
-    ("Расписание_магистрантов_1_КУРС_НАУЧНО-ПЕД__НАПРАВЛЕНИЕ__2026-2027_уч_г_.xlsx", "Магистратура 1 курс (научно-пед. направление)"),
-    ("Расписание_магистрантов_2_курс.xlsx", "Магистратура 2 курс"),
+# Match files by pattern rather than an exact name — the university (and the
+# automation's stable raw/ filenames) both vary, so pick the newest file whose
+# name matches any pattern for a given level, instead of hardcoding one filename.
+# Order matters: more specific patterns (magistracy/doctorate) are checked first
+# and claim their file before the generic "N курс" patterns get a chance, since
+# e.g. "doktorantura_1kurs.xlsx" would otherwise also match the "1 курс" pattern.
+LEVELS = [
+    ("Магистратура 1 курс (профильное направление)",  [r'магистратур.*проф', r'magistratura_?profil']),
+    ("Магистратура 1 курс (научно-пед. направление)", [r'магистрант.*научно', r'magistratura_?nauchped']),
+    ("Магистратура 2 курс",                           [r'магистрант.*2[_\s]?курс', r'magistratura_?2[_\s]?kurs']),
+    ("Докторантура 1 курс",                           [r'докторант', r'doktorantura']),
+    ("1 курс (бакалавриат)",                          [r'1[_\s]?курс', r'1[_\s]?kurs']),
+    ("2 курс (бакалавриат)",                          [r'2[_\s]?курс', r'2[_\s]?kurs']),
+    ("3 курс (бакалавриат)",                          [r'3[_\s]?курс', r'3[_\s]?kurs']),
+    ("4 курс (бакалавриат)",                          [r'4[_\s]?курс', r'4[_\s]?kurs']),
 ]
+
+def discover_files():
+    """Return [(filename, level_label), ...] — the newest matching .xlsx per level.
+    Each file is claimed by at most one level (first match, in LEVELS order),
+    so a more specific pattern never loses its file to a more generic one."""
+    remaining = glob.glob(os.path.join(UPLOAD_DIR, "*.xlsx"))
+    found = []
+    for level_label, patterns in LEVELS:
+        matches = [
+            f for f in remaining
+            if any(re.search(p, os.path.basename(f), re.I) for p in patterns)
+        ]
+        if not matches:
+            print(f"WARNING: no file found for level '{level_label}'", file=sys.stderr)
+            continue
+        matches.sort(key=os.path.getmtime, reverse=True)
+        chosen = matches[0]
+        found.append((os.path.basename(chosen), level_label))
+        remaining = [f for f in remaining if f not in matches]
+    # restore original course order (1..4, then magistracy/doctorate) for readable logs
+    order = {lbl: i for i, (lbl, _) in enumerate([
+        ("1 курс (бакалавриат)", None), ("2 курс (бакалавриат)", None),
+        ("3 курс (бакалавриат)", None), ("4 курс (бакалавриат)", None),
+        ("Магистратура 1 курс (профильное направление)", None),
+        ("Магистратура 1 курс (научно-пед. направление)", None),
+        ("Магистратура 2 курс", None), ("Докторантура 1 курс", None),
+    ])}
+    found.sort(key=lambda x: order.get(x[1], 99))
+    return found
+
+FILES = discover_files()
 
 # Kazakh-specific letter normalization (length-preserving, 1 char -> 1 char)
 KZ_MAP = str.maketrans({
@@ -205,5 +248,5 @@ for fname, level_label in FILES:
 
 print(f"TOTAL MATCHES: {len(all_results)}", file=sys.stderr)
 
-with open("/home/claude/work/results.json", "w", encoding="utf-8") as f:
+with open(REPO_ROOT / "data" / "results.json", "w", encoding="utf-8") as f:
     json.dump(all_results, f, ensure_ascii=False, indent=1)

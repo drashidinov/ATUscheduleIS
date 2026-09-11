@@ -1,14 +1,18 @@
 # -*- coding: utf-8 -*-
 import json
 import sys
-sys.path.insert(0, '/home/claude/work')
+from pathlib import Path
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+REPO_ROOT = SCRIPT_DIR.parent
+sys.path.insert(0, str(SCRIPT_DIR))
 from teachers import teachers
 
 import openpyxl
 from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
 from openpyxl.utils import get_column_letter
 
-data = json.load(open("/home/claude/work/results.json", encoding="utf-8"))
+data = json.load(open(REPO_ROOT / "data" / "results.json", encoding="utf-8"))
 
 DAY_ORDER = {
     "Понедельник": 1, "Вторник": 2, "Среда": 3, "Четверг": 4,
@@ -167,7 +171,7 @@ for i, w in enumerate(widths3, start=1):
     ws3.column_dimensions[get_column_letter(i)].width = w
 ws3.freeze_panes = "A1"
 
-out_path = "/mnt/user-data/outputs/Кафедра_ИС_занятия_преподавателей_2026-2027.xlsx"
+out_path = REPO_ROOT / "dist" / "Кафедра_ИС_занятия_преподавателей_2026-2027.xlsx"
 wb.save(out_path)
 print("Saved:", out_path)
 print("Total rows in 'Все занятия':", len(data))

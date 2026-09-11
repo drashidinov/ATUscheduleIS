@@ -1,0 +1,45 @@
+name: Rebuild schedule board
+
+on:
+  push:
+    paths:
+      - "raw/**.xlsx"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  rebuild:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install openpyxl
+
+      - name: Run pipeline
+        env:
+          SCHEDULE_SOURCE_DIR: raw
+        run: |
+          python3 scripts/extract.py
+          python3 scripts/parse_lessons.py
+          python3 scripts/gen_lessons_js.py
+          python3 scripts/build.py
+          python3 scripts/build_report.py
+
+      - name: Commit and push if changed
+        run: |
+          git config user.name "schedule-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "Auto-rebuild from updated raw schedules [skip ci]"
+            git push
+          fi

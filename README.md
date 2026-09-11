@@ -31,27 +31,41 @@ scripts/
   teachers.py       список 47 преподавателей кафедры ИС
   extract.py        разбор исходных xlsx-расписаний, сопоставление ФИО (с учётом опечаток/казахских букв)
   parse_lessons.py  превращает results.json в parsed_lessons.json (аудитория, тип, дисциплина, время)
+  gen_lessons_js.py собирает src/lessons_data.js из data/parsed_lessons.json
   build_report.py   собирает Excel-отчёт (Кафедра_ИС_занятия_преподавателей_2026-2027.xlsx)
   build.py          собирает dist/kafedra-is-board.html из src/*
+raw/              исходные xlsx от деканата под стабильными именами (заполняется
+                   вручную или автоматически — см. automation/README.md)
 dist/
   kafedra-is-board.html                          готовое табло (открыть в браузере)
   Кафедра_ИС_занятия_преподавателей_2026-2027.xlsx  табличный отчёт по всем преподавателям
 index.html          зеркало dist/kafedra-is-board.html в корне — для GitHub Pages
                      (Settings → Pages → Deploy from branch → main / root)
+automation/         автообновление из Google Drive (Apps Script + GitHub Actions) —
+                     подробности в automation/README.md
+.github/workflows/rebuild.yml  пересобирает сайт при появлении новых raw/*.xlsx
 ```
+
+## Автоматическое обновление
+
+Расписание можно подтягивать из Google Drive без участия чата — см.
+[`automation/README.md`](automation/README.md): Google Apps Script по таймеру
+коммитит свежие файлы в `raw/`, GitHub Actions сам пересобирает сайт.
 
 ## Пересборка после изменения данных
 
-Исходные файлы расписаний (xlsx от деканата) в репозиторий не включены —
-`extract.py` и `parse_lessons.py` ожидают их в `/mnt/user-data/uploads/`
-(путь под окружение Claude, при переносе скрипта на обычный сервер
-поменяйте `UPLOAD_DIR`/пути внутри файлов).
+Исходные файлы расписаний (xlsx от деканата) в репозиторий не включены.
+`extract.py` ищет их по шаблону имени (номер курса / «магистратура» /
+«докторантура»), а не по точному имени файла — источник задаётся переменной
+окружения `SCHEDULE_SOURCE_DIR` (по умолчанию `/mnt/user-data/uploads` —
+путь для ручной загрузки через чат; в автоматизации используется `raw/`).
 
 ```bash
-python3 scripts/extract.py          # -> data/results.json
-python3 scripts/parse_lessons.py    # -> data/parsed_lessons.json (+ src/lessons_data.js обновите вручную/скриптом)
-python3 scripts/build.py            # -> dist/kafedra-is-board.html и корневой index.html
-python3 scripts/build_report.py     # -> dist/Кафедра_ИС_занятия_преподавателей_2026-2027.xlsx
+SCHEDULE_SOURCE_DIR=raw python3 scripts/extract.py   # -> data/results.json
+python3 scripts/parse_lessons.py                     # -> data/parsed_lessons.json
+python3 scripts/gen_lessons_js.py                    # -> src/lessons_data.js
+python3 scripts/build.py                             # -> dist/kafedra-is-board.html и корневой index.html
+python3 scripts/build_report.py                      # -> dist/Кафедра_ИС_занятия_преподавателей_2026-2027.xlsx
 ```
 
 ## Известные ограничения
