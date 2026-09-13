@@ -82,7 +82,7 @@ def strip_all_names(text):
     return s
 
 def detect_room(text):
-    m = re.search(r'ауд\.?\s*[:\-]?\s*([A-Za-zА-Яа-яЁё0-9\-]{2,10})', text, re.I)
+    m = re.search(r'ауд\.?\s*№?\s*[:\-]?\s*([A-Za-zА-Яа-яЁё0-9\-]{2,10})', text, re.I)
     if m:
         return m.group(1).strip(" .")
     if ONLINE_RE.search(text):
@@ -93,6 +93,11 @@ def detect_room(text):
     m = re.search(r'([0-9]{3,4})\s*$', text)
     if m:
         return m.group(1)
+    # Last resort: a room-code-shaped token anywhere in the string (handles
+    # trailing extra notes like "+ис-26типо" or "+3 года" after the room).
+    all_matches = re.findall(r'[0-9]{2,4}\s*-\s*[0-9A-Za-zА-Яа-яЁё]{1,4}', text)
+    if all_matches:
+        return all_matches[-1].replace(" ", "")
     return "?"
 
 def clean_discipline(text, room):
