@@ -97,10 +97,12 @@ function syncSchedules() {
 /** Returns the newest .xlsx File in a folder (optionally filtered by a
  *  case-insensitive regex on the filename, for folders holding several
  *  unrelated schedules), or a specific file by id. When several files match,
- *  picks the LARGEST one rather than the most recently modified one — Drive's
- *  "last updated" can be a half-finished draft re-save that's technically
- *  newer than the real, complete schedule file (which has many more group
- *  sheets and is therefore reliably bigger). */
+ *  picks the one with the MOST sheets inside — neither "most recently
+ *  modified" nor "largest in bytes" reliably identifies the real, complete
+ *  schedule when a folder also holds a draft/partial file: the draft can be
+ *  touched more recently, and file size doesn't track sheet count well
+ *  (formatting/images can make a half-empty file bigger). Sheet count is the
+ *  one signal that directly reflects "this has all the group schedules". */
 function pickSourceFile(src) {
   if (src.fileId) {
     return DriveApp.getFileById(extractDriveId(src.fileId));
@@ -108,14 +110,40 @@ function pickSourceFile(src) {
   const folder = DriveApp.getFolderById(extractDriveId(src.folderId));
   const namePattern = src.namePattern ? new RegExp(src.namePattern, "i") : null;
   const it = folder.getFiles();
-  let best = null;
+  const candidates = [];
   while (it.hasNext()) {
     const f = it.next();
     if (!/\.xlsx$/i.test(f.getName())) continue;
     if (namePattern && !namePattern.test(f.getName())) continue;
-    if (!best || f.getSize() > best.getSize()) best = f;
+    candidates.push(f);
+  }
+  if (candidates.length === 0) return null;
+  if (candidates.length === 1) return candidates[0];
+  let best = candidates[0];
+  let bestSheets = countSheetsInXlsx(best.getBlob());
+  for (let i = 1; i < candidates.length; i++) {
+    const n = countSheetsInXlsx(candidates[i].getBlob());
+    if (n > bestSheets) {
+      best = candidates[i];
+      bestSheets = n;
+    }
   }
   return best;
+}
+
+/** Counts sheets in an .xlsx blob by peeking at xl/workbook.xml inside the
+ *  zip, without needing any advanced service or converting the file. */
+function countSheetsInXlsx(blob) {
+  try {
+    const parts = Utilities.unzip(blob);
+    const wb = parts.filter(function (p) { return p.getName() === "xl/workbook.xml"; })[0];
+    if (!wb) return 0;
+    const xml = wb.getDataAsString();
+    const matches = xml.match(/<sheet[ >]/g);
+    return matches ? matches.length : 0;
+  } catch (e) {
+    return 0;
+  }
 }
 
 /**
