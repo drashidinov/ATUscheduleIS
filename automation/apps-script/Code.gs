@@ -96,7 +96,11 @@ function syncSchedules() {
 
 /** Returns the newest .xlsx File in a folder (optionally filtered by a
  *  case-insensitive regex on the filename, for folders holding several
- *  unrelated schedules), or a specific file by id. */
+ *  unrelated schedules), or a specific file by id. When several files match,
+ *  picks the LARGEST one rather than the most recently modified one — Drive's
+ *  "last updated" can be a half-finished draft re-save that's technically
+ *  newer than the real, complete schedule file (which has many more group
+ *  sheets and is therefore reliably bigger). */
 function pickSourceFile(src) {
   if (src.fileId) {
     return DriveApp.getFileById(extractDriveId(src.fileId));
@@ -109,7 +113,7 @@ function pickSourceFile(src) {
     const f = it.next();
     if (!/\.xlsx$/i.test(f.getName())) continue;
     if (namePattern && !namePattern.test(f.getName())) continue;
-    if (!best || f.getLastUpdated() > best.getLastUpdated()) best = f;
+    if (!best || f.getSize() > best.getSize()) best = f;
   }
   return best;
 }
