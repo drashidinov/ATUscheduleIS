@@ -44,7 +44,7 @@ scope **repo** (classic) достаточно. Скопируйте токен �
    ```json
    [
      {"folderId": "1eA-lcoSPEpt61yUIBHxT5nWnEG-IHins", "namePattern": "фи[ти]т", "target": "raw/1_kurs.xlsx"},
-     {"folderId": "1EeNW0zytgQ4589orfxgZY3oHPOJ1jZkG", "target": "raw/2_kurs.xlsx"},
+     {"folderId": "1EeNW0zytgQ4589orfxgZY3oHPOJ1jZkG", "namePattern": "фии", "target": "raw/2_kurs.xlsx"},
      {"folderId": "1VqbRrpsIzX0thsfz3V41qC8qBeLNNnLb", "target": "raw/3_kurs.xlsx"},
      {"folderId": "1YW_mXxgdIWg3p8Z7APQpfED2H-hTGwKj", "target": "raw/4_kurs.xlsx"},
      {"folderId": "1qTpiIHA9tkla7zAug2X6xtOoPKy8U7-F", "namePattern": "проф", "target": "raw/magistratura_profil.xlsx"},
