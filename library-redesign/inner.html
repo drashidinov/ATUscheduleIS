@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="kk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ғылыми-библиографикалық басылымдар — Ғылым ордасы</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Prata&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#000;--navy:#03131F;--muted:#2b2b2b;
+  --blue:#2F7FC1;--blue-deep:#1F5E96;--blue-soft:#E8F1F9;
+  --gold:#C9A25B;--gold-soft:#F6EEDC;
+  --bg:#fff;--card:#fff;--line:#E4E8EE;--footer:#212121;--radius:0;
+  --shadow:none;
+  --shadow-hover:none;
+}
+*{box-sizing:border-box;margin:0}
+body{font-family:Roboto,sans-serif;color:var(--ink);background:var(--bg);line-height:1.55}
+h1,h2,h3{font-family:Prata,serif;font-weight:400;color:var(--navy)}
+a{color:inherit;text-decoration:none}
+.wrap{max-width:1240px;margin:0 auto;padding:0 24px}
+:focus-visible{outline:3px solid var(--gold);outline-offset:3px;border-radius:0;}
+
+.top{position:absolute;inset:0 0 auto 0;z-index:5}
+.top .wrap{display:flex;align-items:center;gap:32px;height:84px}
+.logo{font-family:Prata,serif;color:#fff;font-size:18px;letter-spacing:.04em;display:flex;align-items:center;gap:10px}
+.logo img{height:52px;width:auto;display:block}
+.top nav{display:flex;gap:26px;margin-left:auto;font-size:15px;color:#fff}
+.top nav a{opacity:.85;padding:6px 0;border-bottom:2px solid transparent;transition:.2s}
+.top nav a:hover,.top nav a.on{opacity:1;border-color:var(--gold)}
+.lang{border:1px solid rgba(255,255,255,.5);color:#fff;border-radius:0;padding:4px 12px;font-size:13px}
+
+/* Компактный hero для внутренних страниц */
+.hero{color:#fff;padding:130px 0 56px;
+  background:linear-gradient(180deg,rgba(15,30,50,.74),rgba(31,94,150,.66) 70%,rgba(15,30,50,.88)),
+  url(https://gylymordasy.gov.kz/include/head-img/bg_library.jpg) center 35%/cover}
+.crumbs{font-size:13px;opacity:.85;margin-bottom:14px}
+.crumbs a:hover{color:var(--gold)}
+.hero h1{color:#fff;font-size:clamp(28px,4vw,44px);line-height:1.15;max-width:820px}
+.hero p{margin-top:12px;max-width:640px;opacity:.9}
+
+/* Макет: сайдбар + контент */
+.layout{display:grid;grid-template-columns:290px 1fr;gap:32px;padding:40px 0 72px;align-items:start}
+.side{position:sticky;top:20px;background:var(--card);border:1px solid var(--line);border-radius:0;padding:10px}
+.side h3{font-family:Roboto,sans-serif;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:12px 12px 6px}
+.side a{display:block;padding:10px 12px;border-radius:0;font-size:15px;color:var(--navy);border-left:2px solid transparent;transition:.15s}
+.side a:hover{background:var(--blue-soft);color:var(--blue-deep)}
+.side a.on{background:var(--gold-soft);border-left-color:var(--gold);font-weight:500}
+.side .back{color:var(--blue-deep);font-size:14px;padding:10px 12px 12px}
+
+/* Панель поиска и фильтров */
+.bar{background:var(--card);border:1px solid var(--line);border-radius:0;padding:16px;display:grid;grid-template-columns:1fr 150px 150px auto;gap:10px}
+.bar input,.bar select{font:inherit;font-size:15px;color:var(--ink);border:1px solid var(--line);border-radius:0;padding:12px 14px;background:#fff;min-width:0}
+.bar input:focus,.bar select:focus{border-color:var(--blue);outline:3px solid var(--blue-soft)}
+.btn{cursor:pointer;display:inline-block;background:transparent;color:var(--ink);border:1px solid var(--navy);font:inherit;padding:12px 28px;transition:.2s}
+.btn:hover{background:var(--navy);color:#fff}
+.meta{display:flex;justify-content:space-between;align-items:center;margin:22px 4px 14px;color:var(--muted);font-size:14px;flex-wrap:wrap;gap:8px}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{border:1px solid var(--line);background:#fff;border-radius:0;padding:5px 14px;font-size:13px;cursor:pointer;transition:.15s}
+.chip:hover{border-color:var(--blue);color:var(--blue-deep)}
+.chip.on{background:var(--blue);border-color:var(--blue);color:#fff}
+
+/* Карточки записей */
+.list{display:grid;gap:14px}
+.item{position:relative;display:grid;grid-template-columns:64px 1fr auto;gap:18px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:0;padding:20px;transition:transform .2s,box-shadow .2s,border-color .2s;overflow:hidden}
+.item::after{content:"";position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--gold);transform:scaleY(0);transform-origin:top;transition:.25s}
+.item:hover{border-color:var(--navy)}
+.item:hover::after{transform:scaleY(1)}
+.cover{width:64px;height:86px;border-radius:0;background:linear-gradient(150deg,var(--navy),var(--blue-deep));position:relative;}
+.cover::before{content:"";position:absolute;left:8px;right:8px;top:12px;height:3px;background:var(--gold);border-radius:0;}
+.cover::after{content:"";position:absolute;left:8px;right:20px;top:22px;height:2px;background:rgba(255,255,255,.4);}
+.item h3{font-family:Roboto,sans-serif;font-weight:500;font-size:17px;line-height:1.35}
+.item .au{color:var(--muted);font-size:14px;margin-top:3px}
+.tags{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;font-size:12px}
+.tags span{background:var(--blue-soft);color:var(--blue-deep);border-radius:0;padding:2px 10px}
+.tags span.g{background:var(--gold-soft);color:#8a6a2c}
+.act{display:flex;flex-direction:column;gap:8px}
+.btn.sm{padding:9px 18px;font-size:14px;text-align:center;border-radius:0;}
+.btn.ghost{border-color:var(--blue);color:var(--blue-deep)}
+.btn.ghost:hover{background:var(--blue);color:#fff}
+
+/* Пагинация */
+.pager{display:flex;gap:6px;justify-content:center;margin-top:32px}
+.pager a{min-width:40px;height:40px;display:grid;place-items:center;border-radius:0;border:1px solid var(--line);background:#fff;font-size:15px;transition:.15s}
+.pager a:hover{border-color:var(--blue);color:var(--blue-deep)}
+.pager a.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+
+/* Состояние «страница в обновлении» */
+.empty{margin-top:22px;background:var(--gold-soft);border:1px solid #ead9b0;border-radius:0;padding:18px 22px;font-size:14px;color:#6b5420;display:flex;gap:12px;align-items:center}
+.empty b{font-family:Prata,serif;font-weight:400;font-size:20px;color:var(--gold)}
+
+footer{background:var(--footer);color:#9e9e9e;padding:36px 0;font-size:14px}
+footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+footer a:hover{color:var(--gold)}
+footer .flogo{height:44px;width:auto;opacity:.9}
+footer .wrap{align-items:center}
+
+@media(max-width:960px){
+  .layout{grid-template-columns:minmax(0,1fr)}.side{position:static}
+  .bar{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .side nav{display:flex;overflow-x:auto;gap:4px}.side nav a{white-space:nowrap;border-left:0;border-bottom:2px solid transparent}
+  .side nav a.on{border-bottom-color:var(--gold)}
+  .bar input{grid-column:1/-1}.bar .btn{grid-column:1/-1}
+  .top nav{display:none}
+}
+@media(max-width:600px){
+  .item{grid-template-columns:52px 1fr}.cover{width:52px;height:70px}.act{grid-column:1/-1;flex-direction:row}.act .btn{flex:1}
+}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<header class="top"><div class="wrap">
+  <a class="logo" href="/"><img src="https://gylymordasy.gov.kz/local/templates/gylymordasy/img/logo_white.svg" alt="Gylym Ordasy"></a>
+  <nav><a href="/about/">Біз туралы</a><a href="/science/">Ғылым</a><a class="on" href="/library/">Орталық ғылыми кітапхана</a><a href="/zakupki/">Сатып алу</a><a href="/news/">Жаңалықтар</a><a href="/contacts/">Байланыс</a></nav>
+  <span class="lang">KZ</span>
+</div></header>
+
+<div class="hero"><div class="wrap">
+  <div class="crumbs"><a href="/">Ғылым ордасы</a> / <a href="/library/">Орталық ғылыми кітапхана</a> / <a href="/library/electronic-library/">Электронды кітапхана</a> / Ғылыми-библиографикалық басылымдар</div>
+  <h1>Ғылыми-библиографикалық басылымдар</h1>
+  <p>Орталық ғылыми кітапхананың толықмәтінді электронды ресурстары</p>
+</div></div>
+
+<main class="wrap layout">
+  <aside class="side">
+    <a class="back" href="/library/electronic-library/">← Электронды кітапхана</a>
+    <h3>Ресурстар</h3>
+    <nav id="nav"></nav>
+  </aside>
+
+  <section>
+    <form class="bar" onsubmit="return false">
+      <input type="search" placeholder="Атауы, автор немесе кілт сөз…" aria-label="Іздеу">
+      <select aria-label="Жылы"><option>Барлық жылдар</option><option>2020–2026</option><option>2010–2019</option><option>2000–2009</option><option>1941–1999</option></select>
+      <select aria-label="Тілі"><option>Барлық тіл</option><option>Қазақша</option><option>Русский</option><option>English</option></select>
+      <button class="btn">Табу</button>
+    </form>
+
+    <div class="meta">
+      <div class="chips" id="chips"></div>
+      <span>Табылды: <b id="cnt"></b></span>
+    </div>
+
+    <div class="list" id="list"></div>
+
+    <div class="pager"><a href="#">‹</a><a class="on" href="#">1</a><a href="#">2</a><a href="#">3</a><a href="#">…</a><a href="#">12</a><a href="#">›</a></div>
+
+    <div class="empty"><b>i</b><span>Бұл — үлгі деректер. Нақты тізім беттің ғылыми өзектендіру процесі аяқталғаннан кейін көрсетіледі.</span></div>
+  </section>
+</main>
+
+<footer><div class="wrap"><img class="flogo" src="https://gylymordasy.gov.kz/local/templates/gylymordasy/img/logo_white.svg" alt="Gylym Ordasy">
+  <span>© 2026 Барлық құқықтар қорғалған.</span>
+  <span>Қазақстан, Алматы қ. · info@gylymordasy.gov.kz · Дүйсенбі–Жұма: 09:00–18:00</span>
+  <a href="#">Пайдалану шарттары</a>
+</div></footer>
+
+<script>
+const base='/library/ortaly-ylymi-kitapkhanany-toly-m-tindi-elektrondy-resurstary/';
+const nav=[['Автореферат','avtoreferat'],['Ғылыми-библиографикалық басылымдар','ylymi-bibliografikaly-basylymdar'],['Қазақстан ғалымдарының еңбектері','aza-stan-alymdaryny-e-bekteri'],['Қолжазбалар','olzhazbalar'],['ҚР Диссертациялары','r-dissertatsiyalary'],['Микрофильм','mikrofilm'],['Мұрағат құжаттар','m-ra-at-zhattar'],['ОҒК ның 1941 жылғы ғылыми басылымдары','o-k-ny-1941-zhyl-y-ylymi-basylymdary'],['Сирек кітаптар','sirek-kitaptar'],['Сирек қордың мерзімді басылымы','sirek-ordy-merzimdi-basylymy'],['Түрік тіліндегі кітаптар','t-rik-tilindegi-kitaptar'],['Шағатай тілінде','sha-atay-tilinde']];
+document.getElementById('nav').innerHTML=nav.map(([t,s])=>`<a class="${s.startsWith('ylymi-bib')?'on':''}" href="${base}${s}/">${t}</a>`).join('');
+const chips=['Барлығы','Библиография','Көрсеткіштер','Каталогтар'];
+document.getElementById('chips').innerHTML=chips.map((c,i)=>`<button class="chip ${i?'':'on'}">${c}</button>`).join('');
+document.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{document.querySelectorAll('.chip').forEach(x=>x.classList.remove('on'));b.classList.add('on')});
+const items=[
+ ['Қазақстан тарихы: библиографиялық көрсеткіш','Құраст.: Үлгі А.Б.','2023','Көрсеткіш','Қазақша','PDF · 12 МБ'],
+ ['Қазақ ғылымы: даму кезеңдері','Үлгі авторлар ұжымы','2019','Библиография','Русский','PDF · 8 МБ'],
+ ['Әдебиет көрсеткіші 1991–2010','Құраст.: Үлгі Б.С.','2012','Көрсеткіш','Қазақша','PDF · 21 МБ'],
+ ['Ғылыми кітапхана қорының каталогы','ОҒК','2005','Каталог','Русский','PDF · 15 МБ']
+];
+document.getElementById('cnt').textContent=items.length*3;
+document.getElementById('list').innerHTML=items.map(([t,a,y,k,l,f])=>`
+<article class="item"><div class="cover" aria-hidden="true"></div>
+<div><h3>${t}</h3><div class="au">${a}</div><div class="tags"><span>${y}</span><span>${k}</span><span>${l}</span><span class="g">${f}</span></div></div>
+<div class="act"><a class="btn sm" href="#">Оқу</a><a class="btn sm ghost" href="#">Жүктеу</a></div></article>`).join('');
+</script>
+</body>
+</html>
