@@ -40,14 +40,15 @@ NAME_TAIL_RE = re.compile(r'^([\s.,]{0,2}[A-ZА-ЯЁ]\.?){1,2}')
 GENERIC_NAME_RE = re.compile(r'[А-ЯЁӘҒҚҢӨҰҮҺІ][а-яёәғқңөұүһі]{2,20}\s?[А-ЯЁӘҒҚҢӨҰҮҺІ]\.\s?[А-ЯЁӘҒҚҢӨҰҮҺІ]?\.?')
 TRAILING_PAREN_NAME_RE = re.compile(r'\(\s*[А-ЯЁӘҒҚҢӨҰҮҺІ][а-яёәғқңөұүһі]{2,15}\s*\)\s*$')
 
+TIME_RE = re.compile(r'^\s*(\d{1,2})\s*[.:]\s*(\d{2})\s*[-\u2013\u2014]\s*(\d{1,2})\s*[.:]\s*(\d{2})\s*$')
+
 def parse_time(t):
-    try:
-        a, b = t.split("-")
-        h1,m1 = a.strip().split(".")
-        h2,m2 = b.strip().split(".")
-        return f"{int(h1):02d}:{int(m1):02d}", f"{int(h2):02d}:{int(m2):02d}", int(h1)*60+int(m1), int(h2)*60+int(m2)
-    except Exception:
+    """Accepts '8.30-9.20' and '18:10-19:00' (dot or colon, hyphen or dash)."""
+    m = TIME_RE.match(t or "")
+    if not m:
         return None, None, None, None
+    h1, m1, h2, m2 = map(int, m.groups())
+    return f"{h1:02d}:{m1:02d}", f"{h2:02d}:{m2:02d}", h1*60+m1, h2*60+m2
 
 def detect_type(text):
     for pat, label in TYPE_DETECT:
@@ -131,6 +132,7 @@ for d in data:
     day = clean_day(d["День"])
     t0, t1, m0, m1 = parse_time(d["Время"])
     if t0 is None:
+        print(f"WARNING: dropped row, unparseable time {d['Время']!r}: {d['Преподаватель']} / {d['День']} / {d['Занятие'][:50]!r}", file=sys.stderr)
         continue
     text = d["Занятие"]
     stripped = strip_all_names(text)
