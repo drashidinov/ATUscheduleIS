@@ -126,9 +126,14 @@ function pickSourceFile(src) {
   // file even when it is newer or has more sheets.
   function isValid(f) {
     const names = readSheetNames(f.getBlob());
-    if (names.length < minSheets) return false;
-    if (requireSheet && !names.some(function (n) { return requireSheet.test(n); })) return false;
-    return true;
+    let ok = names.length >= minSheets;
+    if (ok && requireSheet) ok = names.some(function (n) { return requireSheet.test(n); });
+    if (!ok) {
+      Logger.log("Rejected '" + f.getName() + "' for " + src.target + ": " + names.length +
+                 " sheets" + (names.length ? " (e.g. " + names.slice(0, 3).join(" | ") + ")" : "") +
+                 (names.length === 0 ? " — could not read sheet list, see readSheetNames ERROR above" : ""));
+    }
+    return ok;
   }
 
   if (src.fileId) {
@@ -143,10 +148,7 @@ function pickSourceFile(src) {
     const f = it.next();
     if (!/\.xlsx$/i.test(f.getName())) continue;
     if (namePattern && !namePattern.test(f.getName())) continue;
-    if (!isValid(f)) {
-      Logger.log("Rejected '" + f.getName() + "' for " + src.target + " (too few sheets / no matching sheet name)");
-      continue;
-    }
+    if (!isValid(f)) continue;
     candidates.push(f);
   }
   if (candidates.length === 0) return null;
@@ -163,12 +165,19 @@ function pickSourceFile(src) {
   return best;
 }
 
-/** Sheet names from xl/workbook.xml inside the xlsx zip. */
+/** Sheet names from xl/workbook.xml inside the xlsx zip.
+ *  IMPORTANT: Apps Script's Utilities.unzip() only accepts a blob whose content
+ *  type is a zip type; Drive reports an .xlsx as
+ *  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", which
+ *  makes unzip() throw. So we unzip a COPY retyped as application/zip.
+ *  Errors are logged (not swallowed) — a silent failure here once made every
+ *  file look like it had 0 sheets. */
 function readSheetNames(blob) {
   try {
-    const parts = Utilities.unzip(blob);
+    const zipBlob = blob.copyBlob().setContentType("application/zip");
+    const parts = Utilities.unzip(zipBlob);
     const wb = parts.filter(function (p) { return p.getName() === "xl/workbook.xml"; })[0];
-    if (!wb) return [];
+    if (!wb) { Logger.log("readSheetNames: no xl/workbook.xml in archive"); return []; }
     const xml = wb.getDataAsString("UTF-8");
     const names = [];
     const re = /<sheet\b[^>]*?\bname="([^"]*)"/g;
@@ -178,6 +187,7 @@ function readSheetNames(blob) {
     }
     return names;
   } catch (e) {
+    Logger.log("readSheetNames ERROR: " + e);
     return [];
   }
 }
