@@ -43,10 +43,10 @@ scope **repo** (classic) достаточно. Скопируйте токен �
 
    ```json
    [
-     {"folderId": "1eA-lcoSPEpt61yUIBHxT5nWnEG-IHins", "namePattern": "фи[ти]т", "target": "raw/1_kurs.xlsx"},
-     {"folderId": "1EeNW0zytgQ4589orfxgZY3oHPOJ1jZkG", "namePattern": "фии", "target": "raw/2_kurs.xlsx"},
-     {"folderId": "1VqbRrpsIzX0thsfz3V41qC8qBeLNNnLb", "target": "raw/3_kurs.xlsx"},
-     {"folderId": "1YW_mXxgdIWg3p8Z7APQpfED2H-hTGwKj", "target": "raw/4_kurs.xlsx"},
+     {"folderId": "1eA-lcoSPEpt61yUIBHxT5nWnEG-IHins", "namePattern": "фи[ти]т", "requireSheet": "(^|[^а-яёa-z])ис([^а-яёa-z]|$)", "target": "raw/1_kurs.xlsx"},
+     {"folderId": "1EeNW0zytgQ4589orfxgZY3oHPOJ1jZkG", "namePattern": "фии", "requireSheet": "(^|[^а-яёa-z])ис([^а-яёa-z]|$)", "target": "raw/2_kurs.xlsx"},
+     {"folderId": "1VqbRrpsIzX0thsfz3V41qC8qBeLNNnLb", "requireSheet": "(^|[^а-яёa-z])ис([^а-яёa-z]|$)", "target": "raw/3_kurs.xlsx"},
+     {"folderId": "1YW_mXxgdIWg3p8Z7APQpfED2H-hTGwKj", "requireSheet": "(^|[^а-яёa-z])ис([^а-яёa-z]|$)", "target": "raw/4_kurs.xlsx"},
      {"folderId": "1qTpiIHA9tkla7zAug2X6xtOoPKy8U7-F", "namePattern": "проф", "target": "raw/magistratura_profil.xlsx"},
      {"folderId": "1qTpiIHA9tkla7zAug2X6xtOoPKy8U7-F", "namePattern": "научно", "target": "raw/magistratura_nauchped.xlsx"},
      {"folderId": "1qTpiIHA9tkla7zAug2X6xtOoPKy8U7-F", "namePattern": "2[_\\s]?курс", "target": "raw/magistratura_2kurs.xlsx"},
@@ -88,3 +88,15 @@ python3 scripts/build_report.py
 курса / «магистратура» / «докторантура» в названии) — поэтому переименования
 файлов деканатом между запусками не ломают пайплайн ни при ручной, ни при
 автоматической загрузке.
+
+
+## Защита от подмены файла (v1.12)
+
+- `requireSheet` — регулярка: в выбранном xlsx должен быть лист, чьё **название** ей
+  соответствует. Для 1–4 курсов это лист «ИС …», поэтому файл другого факультета
+  (Дизайн/Экономика/Туризм) отвергается, даже если он новее или в нём больше листов.
+- Защита от «обвала»: если у нового файла листов меньше 60% от последнего принятого
+  (хранится в свойстве `LAST_SHEETS`), файл **не заливается**, в логе — `SKIPPED`.
+- В логе каждого запуска: `PICKED <цель> <- '<имя файла>' (N sheets)`, `Rejected …`,
+  `SKIPPED …` — сверяйте с ожидаемыми числами (1 курс ≈ 28, 2 курс ≈ 57, 3 курс ≈ 49,
+  4 курс ≈ 42–43 листа).

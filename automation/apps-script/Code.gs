@@ -21,10 +21,10 @@
  *
  * SOURCES script property — a JSON array, one entry per file to track:
  *   [
- *     {"folderId": "1eA-lcoSPEpt61yUIBHxT5nWnEG-IHins", "namePattern": "фи[ти]т", "target": "raw/1_kurs.xlsx"},
- *     {"folderId": "1EeNW0zytgQ4589orfxgZY3oHPOJ1jZkG", "namePattern": "фии", "target": "raw/2_kurs.xlsx"},
- *     {"folderId": "1VqbRrpsIzX0thsfz3V41qC8qBeLNNnLb", "target": "raw/3_kurs.xlsx"},
- *     {"folderId": "1YW_mXxgdIWg3p8Z7APQpfED2H-hTGwKj", "target": "raw/4_kurs.xlsx"},
+ *     {"folderId": "1eA-lcoSPEpt61yUIBHxT5nWnEG-IHins", "namePattern": "фи[ти]т", "requireSheet": "(^|[^а-яёa-z])ис([^а-яёa-z]|$)", "target": "raw/1_kurs.xlsx"},
+ *     {"folderId": "1EeNW0zytgQ4589orfxgZY3oHPOJ1jZkG", "namePattern": "фии", "requireSheet": "(^|[^а-яёa-z])ис([^а-яёa-z]|$)", "target": "raw/2_kurs.xlsx"},
+ *     {"folderId": "1VqbRrpsIzX0thsfz3V41qC8qBeLNNnLb", "requireSheet": "(^|[^а-яёa-z])ис([^а-яёa-z]|$)", "target": "raw/3_kurs.xlsx"},
+ *     {"folderId": "1YW_mXxgdIWg3p8Z7APQpfED2H-hTGwKj", "requireSheet": "(^|[^а-яёa-z])ис([^а-яёa-z]|$)", "target": "raw/4_kurs.xlsx"},
  *     {"folderId": "1qTpiIHA9tkla7zAug2X6xtOoPKy8U7-F", "namePattern": "проф",       "target": "raw/magistratura_profil.xlsx"},
  *     {"folderId": "1qTpiIHA9tkla7zAug2X6xtOoPKy8U7-F", "namePattern": "научно",     "target": "raw/magistratura_nauchped.xlsx"},
  *     {"folderId": "1qTpiIHA9tkla7zAug2X6xtOoPKy8U7-F", "namePattern": "2[_\\s]?курс", "target": "raw/magistratura_2kurs.xlsx"},
@@ -54,6 +54,8 @@ function syncSchedules() {
   const stateKey = "LAST_SEEN";
   const lastSeen = JSON.parse(props.getProperty(stateKey) || "{}");
   const newSeen = Object.assign({}, lastSeen);
+  const lastSheets = JSON.parse(props.getProperty("LAST_SHEETS") || "{}");
+  const newSheets = Object.assign({}, lastSheets);
 
   const treeEntries = [];
   const changedTargets = [];
@@ -69,11 +71,22 @@ function syncSchedules() {
       if (lastSeen[src.target] === signature) {
         return; // unchanged since last run
       }
+      // Regression guard: a file that suddenly has far fewer sheets than the
+      // last accepted one is almost certainly a wrong/draft file — keep old data.
+      const names = readSheetNames(file.getBlob());
+      const prev = lastSheets[src.target] || 0;
+      if (prev > 0 && names.length < prev * 0.6) {
+        Logger.log("SKIPPED " + src.target + ": '" + file.getName() + "' has " + names.length +
+                   " sheets, last accepted had " + prev + ". Not overwriting.");
+        return;
+      }
       const base64 = Utilities.base64Encode(file.getBlob().getBytes());
       const blobSha = ghCreateBlob(repo, token, base64);
       treeEntries.push({ path: src.target, mode: "100644", type: "blob", sha: blobSha });
       changedTargets.push(src.target);
       newSeen[src.target] = signature;
+      newSheets[src.target] = names.length;
+      Logger.log("PICKED " + src.target + " <- '" + file.getName() + "' (" + names.length + " sheets)");
     } catch (e) {
       Logger.log("Error processing " + JSON.stringify(src) + ": " + e);
     }
@@ -91,6 +104,7 @@ function syncSchedules() {
   ghUpdateRef(repo, token, branch, newCommitSha);
 
   props.setProperty(stateKey, JSON.stringify(newSeen));
+  props.setProperty("LAST_SHEETS", JSON.stringify(newSheets));
   Logger.log("Committed: " + changedTargets.join(", "));
 }
 
@@ -104,8 +118,22 @@ function syncSchedules() {
  *  (formatting/images can make a half-empty file bigger). Sheet count is the
  *  one signal that directly reflects "this has all the group schedules". */
 function pickSourceFile(src) {
+  const requireSheet = src.requireSheet ? new RegExp(src.requireSheet, "i") : null;
+  const minSheets = src.minSheets || 1;
+  // A candidate is valid only if it has enough sheets AND (when requireSheet
+  // is set) at least one sheet whose NAME matches — e.g. an IS-department
+  // schedule must contain an "ИС ..." sheet. This rejects another faculty's
+  // file even when it is newer or has more sheets.
+  function isValid(f) {
+    const names = readSheetNames(f.getBlob());
+    if (names.length < minSheets) return false;
+    if (requireSheet && !names.some(function (n) { return requireSheet.test(n); })) return false;
+    return true;
+  }
+
   if (src.fileId) {
-    return DriveApp.getFileById(extractDriveId(src.fileId));
+    const f = DriveApp.getFileById(extractDriveId(src.fileId));
+    return isValid(f) ? f : null;
   }
   const folder = DriveApp.getFolderById(extractDriveId(src.folderId));
   const namePattern = src.namePattern ? new RegExp(src.namePattern, "i") : null;
@@ -115,6 +143,10 @@ function pickSourceFile(src) {
     const f = it.next();
     if (!/\.xlsx$/i.test(f.getName())) continue;
     if (namePattern && !namePattern.test(f.getName())) continue;
+    if (!isValid(f)) {
+      Logger.log("Rejected '" + f.getName() + "' for " + src.target + " (too few sheets / no matching sheet name)");
+      continue;
+    }
     candidates.push(f);
   }
   if (candidates.length === 0) return null;
@@ -131,19 +163,28 @@ function pickSourceFile(src) {
   return best;
 }
 
-/** Counts sheets in an .xlsx blob by peeking at xl/workbook.xml inside the
- *  zip, without needing any advanced service or converting the file. */
-function countSheetsInXlsx(blob) {
+/** Sheet names from xl/workbook.xml inside the xlsx zip. */
+function readSheetNames(blob) {
   try {
     const parts = Utilities.unzip(blob);
     const wb = parts.filter(function (p) { return p.getName() === "xl/workbook.xml"; })[0];
-    if (!wb) return 0;
-    const xml = wb.getDataAsString();
-    const matches = xml.match(/<sheet[ >]/g);
-    return matches ? matches.length : 0;
+    if (!wb) return [];
+    const xml = wb.getDataAsString("UTF-8");
+    const names = [];
+    const re = /<sheet\b[^>]*?\bname="([^"]*)"/g;
+    let m;
+    while ((m = re.exec(xml)) !== null) {
+      names.push(m[1].replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&apos;/g, "'"));
+    }
+    return names;
   } catch (e) {
-    return 0;
+    return [];
   }
+}
+
+/** Counts sheets in an .xlsx blob. */
+function countSheetsInXlsx(blob) {
+  return readSheetNames(blob).length;
 }
 
 /**
